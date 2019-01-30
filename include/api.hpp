@@ -30,6 +30,22 @@ namespace sql
         return StaticArray<String...>();
     }
 
+    template<typename T>
+    struct Table
+    {
+        using name_t = T;
+
+        static constexpr auto name()
+        {
+            return std::string_view(name_t::data, name_t::size);
+        }
+
+        static constexpr auto table_name()
+        {
+            return name();
+        }
+    };
+
     namespace operators
     {
         template<typename T>
@@ -124,7 +140,7 @@ namespace sql
 
                 static constexpr std::size_t size()
                 {
-                    return T::name().size() + OP::size() + m_text.size();
+                    return T::name_t::size + OP::size() + m_text.size();
                 }
 
                 auto data() const
@@ -163,6 +179,11 @@ namespace sql
                 return C::name();
             }
 
+            static constexpr auto size()
+            {
+                return C::name_t::size;
+            }
+
             auto data() const
             {
                 return std::make_tuple(m_data);
@@ -170,17 +191,38 @@ namespace sql
         };
     }
 
-    template<typename T, typename H, unsigned short INDEX>
-    struct column
+    struct not_null {};
+    struct pk {};
+    struct fk {};
+
+    template<typename ...T>
+    struct Flags
     {
-        using type_t = T;
-        using table_t = H;
-        using this_t = column<type_t, table_t, INDEX>;
-        static constexpr unsigned short index = INDEX;
+        using type = Flags<T...>;
+
+        template<typename H>
+        static constexpr bool is()
+        {
+            const constexpr bool result = ((std::is_same_v<T, H>) || ... || false);
+            return result;
+        }
+    };
+
+    template<typename Table, typename NameString, typename Type, typename Flags>
+    struct Column
+    {
+        using type_t = Type;
+        using table_t = Table;
+        using name_t = NameString;
+        using flags_t = Flags;
+
+        using this_t = Column<table_t, name_t, type_t, flags_t>;
+
+        static constexpr const bool is_not_null = flags_t::template is<not_null>();
 
         static constexpr auto name()
         {
-            return table_t::columns_name()[index];
+            return std::string_view(name_t::data, name_t::size);
         }
 
         template< typename OP, typename VALUE >
@@ -207,13 +249,13 @@ namespace sql
 
         inline auto operator =( const char *value ) const
         {
-            return assign::Value<column<T,H,INDEX>, std::string_view>(std::string_view(value));
+            return assign::Value<this_t, std::string_view>(std::string_view(value));
         }
 
         template< typename VALUE >
         inline auto operator =( const VALUE &value ) const
         {
-            return assign::Value<column<T,H,INDEX>, VALUE>(value);
+            return assign::Value<this_t, VALUE>(value);
         }
 
         inline auto operator ==( const char *value ) const
@@ -478,7 +520,7 @@ namespace sql
             static constexpr std::size_t size()
             {
                 return    m_text.size()
-                        + ((T::name().size()) + ... + 0) // columns names sizes
+                        + ((T::name_t::size) + ... + 0) // columns names sizes
                         + ((sizeof ... (T) - 1) * m_text_sep.size()) // columns names separators
                         + m_text_end.size(); // last separator
             }
@@ -542,7 +584,7 @@ namespace sql
                         + TABLE::table_name().size()
                         + m_space.size()
                         + m_open.size()
-                        + ((T::name().size()) + ... + 0) // columns names sizes
+                        + ((T::size()) + ... + 0) // columns names sizes
                         + ((sizeof ... (T) - 1) * m_text_sep.size()) // columns names separators
                         + m_values.size()
                         + (sizeof ... (T) * m_quest.size()) // columns names separators

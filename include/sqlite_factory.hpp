@@ -171,6 +171,12 @@ namespace database
                 set::bind(result, data);
                 return result;
             }
+
+            template<typename T>
+            static void create_table()
+            {
+
+            }
         };
     }
 }

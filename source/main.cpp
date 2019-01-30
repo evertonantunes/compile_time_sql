@@ -11,38 +11,40 @@ namespace database
     std::string_view get_echema()
     {
         return R"(
-            CREATE TABLE users
-            (
-                  id            PRIMARY     KEY      NOT NULL
-                , first_name                TEXT     NOT NULL
-                , second_name               TEXT     NOT NULL
-                , age                       INT      NOT NULL
-            );
-
-            INSERT INTO users VALUES (1, 'Blaise', 'Pascal', 39);
-            INSERT INTO users VALUES (2, 'Leonhard', 'Euler', 76);
-            INSERT INTO users VALUES (3, 'Robert', 'Hooke', 67);
-        )";
+               CREATE TABLE users
+               (
+                 id            PRIMARY     KEY      NOT NULL
+               , first_name                TEXT     NOT NULL
+               , second_name               TEXT     NOT NULL
+               , age                       INT      NOT NULL
+               );
+               )";
     }
 
     namespace tables
     {
-        struct users
+        using namespace sql;
+
+        struct strings : public Table<decltype("strings"_s)>
         {
-            static constexpr sql::string_t table_name()
-            {
-                return {"users"};
-            }
+            static constexpr Column<strings, decltype("id"_s)  , std::ptrdiff_t  , Flags<pk, not_null>> id   = {};
+            static constexpr Column<strings, decltype("text"_s), std::string_view, Flags<not_null>    > text = {};
+        };
 
-            static constexpr std::array<sql::string_t, 4> columns_name()
-            {
-                return {sql::string_t("id"), sql::string_t("first_name"), sql::string_t("second_name"), sql::string_t("age")};
-            }
+        struct users : public Table<decltype("users"_s)>
+        {
+            static constexpr Column<users, decltype("id"_s)         , std::ptrdiff_t  , Flags<pk, not_null>> id          = {};
+            static constexpr Column<users, decltype("first_name"_s) , std::string_view, Flags<not_null>    > first_name  = {};
+            static constexpr Column<users, decltype("second_name"_s), std::string_view, Flags<not_null>    > second_name = {};
+            static constexpr Column<users, decltype("age"_s)        , std::ptrdiff_t  , Flags<not_null>    > age         = {};
+        };
 
-            static constexpr sql::column<std::ptrdiff_t, users, 0> id = {};
-            static constexpr sql::column<std::string_view, users, 1> first_name = {};
-            static constexpr sql::column<std::string_view, users, 2> second_name = {};
-            static constexpr sql::column<std::ptrdiff_t, users, 3> age = {};
+        struct users2 : public Table<decltype("users2"_s)>
+        {
+            static constexpr Column<users2, decltype("id"_s)         , std::ptrdiff_t, Flags<pk, not_null>> id          = {};
+            static constexpr Column<users2, decltype("first_name"_s) , std::ptrdiff_t, Flags<fk, not_null>> first_name  = {};
+            static constexpr Column<users2, decltype("second_name"_s), std::ptrdiff_t, Flags<fk, not_null>> second_name = {};
+            static constexpr Column<users2, decltype("age"_s)        , std::ptrdiff_t, Flags<not_null>    > age         = {};
         };
     }
 
@@ -57,13 +59,39 @@ namespace database
     {
         sql::insert_into<factory_t, H>(std::forward<T>(args)...);
     }
+
+    template<typename T>
+    void create_table()
+    {
+        factory_t::create_table<T>();
+    }
 }
 
 int main()
 {
     database::factory_t::execute(database::get_echema());
 
+    database::create_table<database::tables::strings>();
+    database::create_table<database::tables::users2>();
+
     using users_t = database::tables::users;
+
+
+    database::insert_into<users_t>(   users_t::id = 1l
+                                    , users_t::first_name = "Blaise"
+                                    , users_t::second_name = "Pascal"
+                                    , users_t::age = 39l );
+
+    database::insert_into<users_t>(   users_t::id = 2l
+                                    , users_t::first_name = "Leonhard"
+                                    , users_t::second_name = "Euler"
+                                    , users_t::age = 76l );
+
+    database::insert_into<users_t>(   users_t::id = 3l
+                                    , users_t::first_name = "Robert"
+                                    , users_t::second_name = "Hooke"
+                                    , users_t::age = 67l );
+
 
     for ( auto [id, first_name, second_name, age] : database::select(  users_t::id
                                                                      , users_t::first_name

@@ -6,22 +6,14 @@ namespace database
 {
     namespace tables
     {
-        struct users
+        using namespace sql;
+
+        struct users : public Table<decltype("users"_s)>
         {
-            static sql::string_t table_name()
-            {
-                return {"users"};
-            }
-
-            static std::array<std::string_view, 4> columns_name()
-            {
-                return {"id", "name", "x", "y"};
-            }
-
-            static constexpr sql::column<std::ptrdiff_t, users, 0> id = {};
-            static constexpr sql::column<std::string_view, users, 1> name = {};
-            static constexpr sql::column<std::ptrdiff_t, users, 2> x = {};
-            static constexpr sql::column<std::ptrdiff_t, users, 3> y = {};
+            static constexpr Column<users, decltype("id"_s)         , std::ptrdiff_t  , Flags<not_null>> id          = {};
+            static constexpr Column<users, decltype("first_name"_s) , std::string_view, Flags<not_null>> first_name  = {};
+            static constexpr Column<users, decltype("second_name"_s), std::string_view, Flags<not_null>> second_name = {};
+            static constexpr Column<users, decltype("age"_s)        , std::ptrdiff_t  , Flags<not_null>> age         = {};
         };
     }
 
