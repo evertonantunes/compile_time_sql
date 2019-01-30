@@ -113,7 +113,12 @@ namespace database
             switch (context.m_error_code)
             {
                 case SQLITE_ROW:
-                    get::bind(context, data);
+                {
+                    if constexpr (std::tuple_size<std::tuple<T...>>::value != 0)
+                    {
+                        get::bind(context, data);
+                    }
+                }
                 break;
                 case SQLITE_DONE:
                     return;

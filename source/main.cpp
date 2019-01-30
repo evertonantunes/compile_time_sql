@@ -51,6 +51,12 @@ namespace database
     {
         return sql::select<factory_t>(std::forward<T>(args)...);
     }
+
+    template<typename H, typename ...T>
+    void insert_into( T &&...args )
+    {
+        sql::insert_into<factory_t, H>(std::forward<T>(args)...);
+    }
 }
 
 int main()
@@ -77,5 +83,20 @@ int main()
     {
         std::cout << "id: " << id << " first_name: " << first_name << " second_name: " << second_name << " age: " << age << std::endl;
     }
+
+    database::insert_into<users_t>(   users_t::id = 4l
+                                    , users_t::first_name = "Éverton"
+                                    , users_t::second_name = "Éverton"
+                                    , users_t::age = 31l );
+
+    for ( auto [id, first_name, second_name, age] : database::select(  users_t::id
+                                                                     , users_t::first_name
+                                                                     , users_t::second_name
+                                                                     , users_t::age)
+          .from<users_t>() )
+    {
+        std::cout << "id: " << id << " first_name: " << first_name << " second_name: " << second_name << " age: " << age << std::endl;
+    }
+
     return 0;
 }

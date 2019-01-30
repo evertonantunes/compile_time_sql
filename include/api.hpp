@@ -2,6 +2,7 @@
 #include <vector>
 #include <algorithm>
 #include <type_traits>
+#include <assert.h>
 
 namespace std
 {
@@ -16,41 +17,40 @@ namespace sql
 {
     using string_t = std::string_view;
 
+    template<char ... String>
+    struct StaticArray
+    {
+        static const constexpr char data[] = {String ... };
+        static const constexpr std::size_t size = sizeof ... (String);
+    };
+
+    template<typename CharT, CharT ...String>
+    constexpr auto operator "" _s( )
+    {
+        return StaticArray<String...>();
+    }
+
     namespace operators
     {
+        template<typename T>
+        struct Operator
+        {
+            template<typename I>
+            static constexpr void write( I &iterator )
+            {
+                copy(T::data, iterator);
+            }
+
+            static constexpr std::size_t size()
+            {
+                return T::size;
+            }
+        };
+
         namespace logical
         {
-            struct And
-            {
-                static const constexpr string_t m_text = string_t(" AND ");
-
-                template<typename IT>
-                static constexpr void write( IT &iterator )
-                {
-                    copy(m_text, iterator);
-                }
-
-                static constexpr std::size_t size()
-                {
-                    return m_text.size();
-                }
-            };
-
-            struct Or
-            {
-                static constexpr const string_t m_text = string_t(" OR ");
-
-                template<typename IT>
-                static constexpr void write( IT &iterator )
-                {
-                    copy(m_text, iterator);
-                }
-
-                static constexpr std::size_t size()
-                {
-                    return m_text.size();
-                }
-            };
+            using And = Operator<decltype(" AND "_s)>;
+            using Or = Operator<decltype(" OR "_s)>;
 
             template<typename OP, typename L, typename R>
             struct Logical
@@ -96,101 +96,12 @@ namespace sql
 
         namespace comparasion
         {
-            struct Equals
-            {
-                static constexpr string_t m_text = string_t(" == ");
-
-                template<typename IT>
-                static constexpr void write( IT &iterator )
-                {
-                    copy(m_text, iterator);
-                }
-
-                static constexpr std::size_t size()
-                {
-                    return m_text.size();
-                }
-            };
-
-            struct NotEquals
-            {
-                static constexpr string_t m_text = string_t(" != ");
-
-                template<typename IT>
-                static constexpr void write( IT &iterator )
-                {
-                    copy(m_text, iterator);
-                }
-
-                static constexpr std::size_t size()
-                {
-                    return m_text.size();
-                }
-            };
-
-            struct LessThan
-            {
-                static constexpr string_t m_text = string_t(" < ");
-
-                template<typename IT>
-                static constexpr void write( IT &iterator )
-                {
-                    copy(m_text, iterator);
-                }
-
-                static constexpr std::size_t size()
-                {
-                    return m_text.size();
-                }
-            };
-
-            struct LessThanEqual
-            {
-                static constexpr string_t m_text = string_t(" <= ");
-
-                template<typename IT>
-                static constexpr void write( IT &iterator )
-                {
-                    copy(m_text, iterator);
-                }
-
-                static constexpr std::size_t size()
-                {
-                    return m_text.size();
-                }
-            };
-
-            struct GreaterThan
-            {
-                static constexpr string_t m_text = string_t(" > ");
-
-                template<typename IT>
-                static constexpr void write( IT &iterator )
-                {
-                    copy(m_text, iterator);
-                }
-
-                static constexpr std::size_t size()
-                {
-                    return m_text.size();
-                }
-            };
-
-            struct GreaterThanEqual
-            {
-                static constexpr string_t m_text = string_t(" >= ");
-
-                template<typename IT>
-                static constexpr void write( IT &iterator )
-                {
-                    copy(m_text, iterator);
-                }
-
-                static constexpr std::size_t size()
-                {
-                    return m_text.size();
-                }
-            };
+            using Equals = Operator<decltype(" == "_s)>;
+            using NotEquals = Operator<decltype(" != "_s)>;
+            using LessThan = Operator<decltype(" < "_s)>;
+            using LessThanEqual = Operator<decltype(" <= "_s)>;
+            using GreaterThan = Operator<decltype(" > "_s)>;
+            using GreaterThanEqual = Operator<decltype(" >= "_s)>;
 
             template<typename OP, typename T, typename H>
             struct Comparasion
@@ -236,6 +147,29 @@ namespace sql
         }
     }
 
+    namespace assign
+    {
+        template<typename C, typename T>
+        struct Value
+        {
+            T m_data;
+
+            Value( T data  )
+                : m_data(data)
+            { }
+
+            static constexpr auto name()
+            {
+                return C::name();
+            }
+
+            auto data() const
+            {
+                return std::make_tuple(m_data);
+            }
+        };
+    }
+
     template<typename T, typename H, unsigned short INDEX>
     struct column
     {
@@ -269,6 +203,17 @@ namespace sql
                 static_assert(std::is_same<type_t, VALUE>::value, "Parameter type does not compatible");
                 return Comparasion<OP, this_t, VALUE>(value);
             }
+        }
+
+        inline auto operator =( const char *value ) const
+        {
+            return assign::Value<column<T,H,INDEX>, std::string_view>(std::string_view(value));
+        }
+
+        template< typename VALUE >
+        inline auto operator =( const VALUE &value ) const
+        {
+            return assign::Value<column<T,H,INDEX>, VALUE>(value);
         }
 
         inline auto operator ==( const char *value ) const
@@ -417,6 +362,8 @@ namespace sql
                 FROM::write(it);
                 SelectFromWhare::write(it);
 
+                assert(it == std::end(text));
+
                 return text;
             }
 
@@ -464,6 +411,8 @@ namespace sql
                 SELECT::write(it);
                 FROM::write(it);
                 copy(m_text_end, it);
+
+                assert(it == std::end(text));
 
                 return text;
             }
@@ -541,6 +490,84 @@ namespace sql
                 return SelectFrom<select_t, From<H>>();
             }
         };
+
+        template<typename FACTORY, typename TABLE, typename DATA, typename ...T>
+        struct Insert
+        {
+            DATA m_data;
+
+            static const constexpr string_t m_text = string_t("INSERT INTO ");
+            static const constexpr string_t m_text_sep = string_t(", ");
+            static const constexpr string_t m_space = string_t(" ");
+            static const constexpr string_t m_open = string_t("(");
+            static const constexpr string_t m_values = string_t(") VALUES (");
+            static const constexpr string_t m_quest = string_t("?");
+            static const constexpr string_t m_end = string_t(");");
+
+            Insert( DATA &&data )
+                : m_data(std::move(data))
+            { }
+
+            template<typename IT>
+            void write( IT &iterator ) const
+            {
+                copy(m_text, iterator);
+                copy(TABLE::table_name(), iterator);
+                copy(m_space, iterator);
+                copy(m_open, iterator);
+
+                const auto names = {T::name()...};
+
+                std::for_each(begin(names), std::prev(end(names)), [&]( const auto &item )
+                {
+                    copy(item, iterator);
+                    copy(m_text_sep, iterator);
+                });
+                copy(*std::prev(end(names)), iterator);
+
+                copy(m_values, iterator);
+
+                std::for_each(begin(names), std::prev(end(names)), [&]( const auto & )
+                {
+                    copy(m_quest, iterator);
+                    copy(m_text_sep, iterator);
+                });
+                copy(m_quest, iterator);
+                copy(m_end, iterator);
+            }
+
+            static constexpr std::size_t size()
+            {
+                return    m_text.size()
+                        + TABLE::table_name().size()
+                        + m_space.size()
+                        + m_open.size()
+                        + ((T::name().size()) + ... + 0) // columns names sizes
+                        + ((sizeof ... (T) - 1) * m_text_sep.size()) // columns names separators
+                        + m_values.size()
+                        + (sizeof ... (T) * m_quest.size()) // columns names separators
+                        + ((sizeof ... (T) - 1) * m_text_sep.size()) // columns names separators
+                        + m_end.size(); // last separator
+                return 0;
+            }
+
+            std::string get_query() const
+            {
+                const constexpr std::size_t buffer_size = Insert::size();
+                std::string text(buffer_size, '.');
+                auto it = std::begin(text);
+                this->write(it);
+                assert(it == end(text));
+                return text;
+            }
+
+            void run() const
+            {
+                auto context = FACTORY::make_context(get_query(), std::move(m_data));
+                std::tuple<> tp;
+                next(context, tp);
+            }
+        };
     }
 
     template<typename F, typename ...T>
@@ -548,4 +575,12 @@ namespace sql
     {
         return impl::Select<F, T...>();
     }
+
+    template<typename FACTORY, typename TABLE, typename ...COLUMNS>
+    void insert_into( COLUMNS &&...args )
+    {
+        auto _tup = std::tuple_cat(args.data()...);
+        impl::Insert<FACTORY, TABLE, decltype(_tup), COLUMNS...>(std::move(_tup)).run();
+    }
+
 }
