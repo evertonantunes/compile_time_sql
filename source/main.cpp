@@ -20,14 +20,6 @@ namespace database
             using columns = std::tuple<decltype(id), decltype(text)>; // future introspection
         };
 
-//        struct users : public Table<decltype("users"_s)>
-//        {
-//            static constexpr Column<users, decltype("id"_s)         , std::ptrdiff_t  , Flags<pk, not_null>> id          = {};
-//            static constexpr Column<users, decltype("first_name"_s) , std::string_view, Flags<not_null>    > first_name  = {};
-//            static constexpr Column<users, decltype("second_name"_s), std::string_view, Flags<not_null>    > second_name = {};
-//            static constexpr Column<users, decltype("age"_s)        , std::ptrdiff_t  , Flags<not_null>    > age         = {};
-//        };
-
         struct users : public Table<decltype("users"_s)>
         {
             static constexpr Column<users, decltype("id"_s)         , std::ptrdiff_t, Flags<pk, not_null>> id          = {};
@@ -78,7 +70,6 @@ int main()
                                     , users_t::second_name = database::insert_into<strings_t>(strings_t::text = "Hooke")
                                     , users_t::age = 67l );
 
-    /*
 
     for ( auto [id, first_name, second_name, age] : database::select(  users_t::id
                                                                      , users_t::first_name
@@ -111,6 +102,6 @@ int main()
     {
         std::cout << "id: " << id << " first_name: " << first_name << " second_name: " << second_name << " age: " << age << std::endl;
     }
-*/
+
     return 0;
 }

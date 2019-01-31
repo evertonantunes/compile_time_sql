@@ -194,6 +194,8 @@ namespace sql
         {
             T m_data;
 
+            using column_t = C;
+
             Value( T data  )
                 : m_data(data)
             { }
@@ -562,8 +564,7 @@ namespace sql
             DATA m_data;
 
             static const constexpr string_t m_text = string_t("INSERT INTO ");
-            static const constexpr string_t m_text_sep = string_t(", ");
-            static const constexpr string_t m_space = string_t(" ");
+            static const constexpr string_t m_text_sep = string_t(",");
             static const constexpr string_t m_open = string_t("(");
             static const constexpr string_t m_values = string_t(") VALUES (");
             static const constexpr string_t m_quest = string_t("?");
@@ -573,73 +574,73 @@ namespace sql
                 : m_data(std::move(data))
             { }
 
-            template<typename IT>
-            void write( IT &iterator ) const
+            template<typename COLUMN, typename F >
+            static constexpr void accumulate_columns( F &out, const std::size_t index )
             {
-                copy(m_text, iterator);
-                copy(TABLE::table_name(), iterator);
-                copy(m_space, iterator);
-                copy(m_open, iterator);
+                using flags_t = typename COLUMN::flags_t;
 
-                const auto names = {T::name()...};
-
-                std::for_each(begin(names), std::prev(end(names)), [&]( const auto &item )
+                if (index > 0)
                 {
-                    copy(item, iterator);
-                    copy(m_text_sep, iterator);
-                });
-                copy(*std::prev(end(names)), iterator);
+                    add(out, m_text_sep);
+                }
 
-                copy(m_values, iterator);
+                add(out, typename COLUMN::name_t());
+            }
 
-                std::for_each(begin(names), std::prev(end(names)), [&]( const auto & )
+            template<typename COLUMN, typename F >
+            static constexpr void accumulate_args( F &out, const std::size_t index )
+            {
+                using flags_t = typename COLUMN::flags_t;
+
+                if (index > 0)
                 {
-                    copy(m_quest, iterator);
-                    copy(m_text_sep, iterator);
-                });
-                copy(m_quest, iterator);
-                copy(m_end, iterator);
+                    add(out, m_text_sep);
+                }
+
+                add(out, m_quest);
+            }
+
+            template<typename F>
+            static constexpr void accumulate( F &out )
+            {
+                add(out, m_text);
+                add(out, typename TABLE::name_t());
+                add(out, m_open);
+                std::size_t index = 0;
+                ((accumulate_columns<typename T::column_t>(out, index++)), ... ); // columns names and separators
+                add(out, m_values);
+                index = 0;
+                ((accumulate_args<typename T::column_t>(out, index++)), ... ); // columns names and separators
+                add(out, m_end);
             }
 
             static constexpr std::size_t size()
             {
-                return    m_text.size()
-                        + TABLE::table_name().size()
-                        + m_space.size()
-                        + m_open.size()
-                        + ((T::size()) + ... + 0) // columns names sizes
-                        + ((sizeof ... (T) - 1) * m_text_sep.size()) // columns names separators
-                        + m_values.size()
-                        + (sizeof ... (T) * m_quest.size()) // columns names separators
-                        + ((sizeof ... (T) - 1) * m_text_sep.size()) // columns names separators
-                        + m_end.size(); // last separator
-                return 0;
+                std::size_t size = 0;
+                Insert::accumulate(size);
+                return size;
             }
 
-            std::string get_query() const
+            static auto get_sql()
             {
-                const constexpr std::size_t buffer_size = Insert::size();
-                std::string text(buffer_size, '.');
+                static const constexpr std::size_t size = Insert::size();
+                std::string text(size, '.');
+
                 auto it = std::begin(text);
-                this->write(it);
+                Insert::accumulate(it);
+
                 std::cout << "sql: " << text << std::endl;
-                assert(it == end(text));
                 return text;
             }
 
             auto run() const
             {                
-                auto context = FACTORY::make_context(get_query(), std::move(m_data));
+                auto context = FACTORY::make_context(get_sql(), std::move(m_data));
                 std::tuple<> tp;
                 next(context, tp);
-                const auto id = FACTORY::get_last_insert_id();
-                std::cout << "insert id: " << id << std::endl;
-                return id;
+                return FACTORY::get_last_insert_id();
             }
         };
-
-
-
 
         template<typename Factory, typename Table, typename ...COLUMNS>
         struct TableCreator
@@ -651,11 +652,9 @@ namespace sql
             static const constexpr string_t m_e = string_t(",");
             static const constexpr string_t m_f = string_t(")");
             static const constexpr string_t m_g = string_t(";");
-
-            static const constexpr string_t m_pk_text = string_t(" , constraint pk_");
-
-            static const constexpr string_t m_integer_type = string_t(" INTEGER ");
-            static const constexpr string_t m_text_type = string_t(" TEXT ");
+            static const constexpr string_t m_pk_text = string_t(", constraint pk_");
+            static const constexpr string_t m_integer_type = string_t(" INTEGER");
+            static const constexpr string_t m_text_type = string_t(" TEXT");
 
             template<typename T, typename F >
             static constexpr void accumulate_constraint( F &out )
