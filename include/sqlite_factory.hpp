@@ -91,9 +91,10 @@ namespace database
             { }
 
             Context( sqlite3 *connection, std::string &&sql )
-                : m_sql(std::move(sql))
+                : m_stmt(nullptr)
+                , m_sql(std::move(sql))
             {
-                m_error_code = sqlite3_prepare(connection, m_sql.c_str(), m_sql.size(), &m_stmt, NULL);
+                m_error_code = sqlite3_prepare_v2(connection, m_sql.c_str(), m_sql.size(), &m_stmt, NULL);
                 assert(m_error_code == SQLITE_OK);
             }
 
@@ -101,7 +102,7 @@ namespace database
             {
                 if (m_stmt)
                 {
-            //        sqlite3_finalize(m_stmt);
+                    //sqlite3_finalize(m_stmt);
                 }
             }
         };
@@ -164,18 +165,17 @@ namespace database
                 }
             }
 
+            static auto get_last_insert_id()
+            {
+                return sqlite3_last_insert_rowid(instance()->m_database_connection);
+            }
+
             template<typename T>
             static context_t make_context( std::string &&sql, T &&data )
             {
                 context_t result(instance()->m_database_connection, std::move(sql));
                 set::bind(result, data);
                 return result;
-            }
-
-            template<typename T>
-            static void create_table()
-            {
-
             }
         };
     }

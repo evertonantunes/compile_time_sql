@@ -4,6 +4,8 @@
 #include <type_traits>
 #include <assert.h>
 
+#include <iostream>
+
 namespace std
 {
     template<typename T, typename H>
@@ -217,8 +219,6 @@ namespace sql
         using flags_t = Flags;
 
         using this_t = Column<table_t, name_t, type_t, flags_t>;
-
-        static constexpr const bool is_not_null = flags_t::template is<not_null>();
 
         static constexpr auto name()
         {
@@ -603,13 +603,167 @@ namespace sql
                 return text;
             }
 
-            void run() const
-            {
+            auto run() const
+            {                
                 auto context = FACTORY::make_context(get_query(), std::move(m_data));
                 std::tuple<> tp;
                 next(context, tp);
+                return FACTORY::get_last_insert_id();
             }
         };
+
+        template<typename Factory, typename Table, typename ...COLUMNS>
+        struct TableCreator
+        {
+            static const constexpr string_t m_a = string_t("CREATE TABLE ");
+            static const constexpr string_t m_b = string_t(" (");
+            static const constexpr string_t m_c = string_t(" PRIMARY KEY");
+            static const constexpr string_t m_d = string_t(" NOT NULL");
+            static const constexpr string_t m_e = string_t(",");
+            static const constexpr string_t m_f = string_t(")");
+            static const constexpr string_t m_g = string_t(";");
+
+            static const constexpr string_t m_pk_text = string_t(" , constraint pk_");
+
+            static const constexpr string_t m_integer_type = string_t(" INTEGER ");
+            static const constexpr string_t m_text_type = string_t(" TEXT ");
+
+            template<typename T>
+            static constexpr std::size_t get_type_size()
+            {
+                if constexpr (std::is_same_v<std::string, T>)
+                {
+                    return m_integer_type.size();
+                }
+                else if constexpr (std::is_same_v<std::string_view, T>)
+                {
+                    return m_text_type.size();
+                }
+                else if constexpr (std::is_same_v<std::ptrdiff_t, T>)
+                {
+                    return m_text_type.size();
+                }
+                return 0l;
+            }
+
+            template<typename T>
+            static constexpr auto get_column_size()
+            {
+                using flags_t = typename T::flags_t;
+                std::size_t result = T::name_t::size;
+
+                result += get_type_size<typename T::type_t>();
+
+                if constexpr (flags_t::template is<not_null>())
+                {
+                    result += m_d.size();
+                }
+
+                if constexpr (flags_t::template is<pk>())
+                {
+                    using table_t = typename T::table_t;
+                    result += m_pk_text.size();
+                    result += table_t::name_t::size;
+                    result += m_c.size();
+                    result += m_b.size();
+                    result += T::name_t::size;
+                    result += m_f.size();
+                }
+
+                return result;
+            }
+
+            static constexpr auto size()
+            {
+                return   m_a.size()
+                       + Table::name_t::size
+                       + m_b.size()
+                       + ((get_column_size<COLUMNS>() + m_e.size()) + ... + -1 )
+                       + m_f.size()
+                       + m_f.size()
+                       + m_g.size();
+            }
+
+            template<typename T, typename I>
+            static constexpr void write_constraint( I &it )
+            {
+                using flags_t = typename T::flags_t;
+                if constexpr (flags_t::template is<pk>())
+                {
+                    using table_t = typename T::table_t;
+                    copy(m_pk_text, it);
+                    copy(table_t::name_t::data, it);
+                    copy(m_c, it);
+                    copy(m_b, it);
+                    copy(T::name_t::data, it);
+                    copy(m_f, it);
+                }
+            }
+
+            template<typename T, typename I>
+            static constexpr void write_type( I &it )
+            {
+                if constexpr (std::is_same_v<std::string, T>)
+                {
+                    copy(m_text_type, it);
+                }
+                else if constexpr (std::is_same_v<std::string_view, T>)
+                {
+                    copy(m_text_type, it);
+                }
+                else if constexpr (std::is_same_v<std::ptrdiff_t, T>)
+                {
+                    copy(m_integer_type, it);
+                }
+            }
+
+            template<typename T, typename I>
+            static constexpr void write_column( I &it )
+            {
+                using flags_t = typename T::flags_t;
+                copy(T::name_t::data, it);
+                write_type<typename T::type_t>(it);
+                if constexpr (flags_t::template is<not_null>())
+                {
+                    copy(m_d, it);
+                }
+            }
+
+            template<typename I>
+            static auto write( I &it )
+            {
+                copy(m_a, it);
+                copy(Table::name_t::data, it);
+                copy(m_b, it);
+                ((write_column<COLUMNS>(it), copy(m_e, it)), ..., it-- );
+                ((write_constraint<COLUMNS>(it)), ... );
+                copy(m_f, it);
+                copy(m_g, it);
+            }
+
+            static auto get_sql()
+            {
+                static const constexpr std::size_t size = TableCreator::size();
+                std::string text(size, '.');
+                auto it = std::begin(text);
+                write(it);
+                std::cout << "sql: " << text << std::endl;
+                assert(it == std::end(text));
+                return text;
+
+            }
+
+            static void run()
+            {
+                Factory::instance()->execute(get_sql());
+            }
+        };
+
+        template<typename Factory, typename Table, typename ...COLUMNS>
+        static void create_table( const std::tuple<COLUMNS...> & )
+        {
+            TableCreator<Factory, Table, COLUMNS...>::run();
+        }
     }
 
     template<typename F, typename ...T>
@@ -619,10 +773,15 @@ namespace sql
     }
 
     template<typename FACTORY, typename TABLE, typename ...COLUMNS>
-    void insert_into( COLUMNS &&...args )
+    auto insert_into( COLUMNS &&...args )
     {
         auto _tup = std::tuple_cat(args.data()...);
-        impl::Insert<FACTORY, TABLE, decltype(_tup), COLUMNS...>(std::move(_tup)).run();
+        return impl::Insert<FACTORY, TABLE, decltype(_tup), COLUMNS...>(std::move(_tup)).run();
     }
 
+    template<typename Factory, typename Table>
+    static void create_table()
+    {
+        impl::create_table<Factory, Table>(typename Table::columns());
+    }
 }

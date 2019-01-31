@@ -13,12 +13,18 @@ namespace database
         return R"(
                CREATE TABLE users
                (
-                 id            PRIMARY     KEY      NOT NULL
+                 id                        INTEGER  NOT NULL
                , first_name                TEXT     NOT NULL
                , second_name               TEXT     NOT NULL
-               , age                       INT      NOT NULL
+               , age                       INTEGER  NOT NULL
+               , constraint pk_users primary key (id)
                );
                )";
+
+        /*
+    constraint pk_system_contact_type primary key (id),
+    FOREIGN KEY(traceability_id) REFERENCES traceability(id)
+*/
     }
 
     namespace tables
@@ -29,6 +35,8 @@ namespace database
         {
             static constexpr Column<strings, decltype("id"_s)  , std::ptrdiff_t  , Flags<pk, not_null>> id   = {};
             static constexpr Column<strings, decltype("text"_s), std::string_view, Flags<not_null>    > text = {};
+
+            using columns = std::tuple<decltype(id), decltype(text)>; // future introspection
         };
 
         struct users : public Table<decltype("users"_s)>
@@ -45,6 +53,8 @@ namespace database
             static constexpr Column<users2, decltype("first_name"_s) , std::ptrdiff_t, Flags<fk, not_null>> first_name  = {};
             static constexpr Column<users2, decltype("second_name"_s), std::ptrdiff_t, Flags<fk, not_null>> second_name = {};
             static constexpr Column<users2, decltype("age"_s)        , std::ptrdiff_t, Flags<not_null>    > age         = {};
+
+            using columns = std::tuple<decltype(id), decltype(first_name), decltype(second_name), decltype(age)>; // future introspection
         };
     }
 
@@ -55,41 +65,40 @@ namespace database
     }
 
     template<typename H, typename ...T>
-    void insert_into( T &&...args )
+    auto insert_into( T &&...args )
     {
-        sql::insert_into<factory_t, H>(std::forward<T>(args)...);
+        return sql::insert_into<factory_t, H>(std::forward<T>(args)...);
     }
 
     template<typename T>
     void create_table()
     {
-        factory_t::create_table<T>();
+        sql::create_table<factory_t, T>();
     }
 }
 
 int main()
 {
-    database::factory_t::execute(database::get_echema());
-
+//    database::factory_t::execute(database::get_echema());
     database::create_table<database::tables::strings>();
     database::create_table<database::tables::users2>();
 
-    using users_t = database::tables::users;
-
+    using strings_t = database::tables::strings;
+    using users_t = database::tables::users2;
 
     database::insert_into<users_t>(   users_t::id = 1l
-                                    , users_t::first_name = "Blaise"
-                                    , users_t::second_name = "Pascal"
+                                    , users_t::first_name = database::insert_into<strings_t>(strings_t::text = "Blaise")
+                                    , users_t::second_name = database::insert_into<strings_t>(strings_t::text = "Pascal")
                                     , users_t::age = 39l );
 
     database::insert_into<users_t>(   users_t::id = 2l
-                                    , users_t::first_name = "Leonhard"
-                                    , users_t::second_name = "Euler"
+                                    , users_t::first_name = database::insert_into<strings_t>(strings_t::text = "Leonhard")
+                                    , users_t::second_name = database::insert_into<strings_t>(strings_t::text = "Euler")
                                     , users_t::age = 76l );
 
     database::insert_into<users_t>(   users_t::id = 3l
-                                    , users_t::first_name = "Robert"
-                                    , users_t::second_name = "Hooke"
+                                    , users_t::first_name = database::insert_into<strings_t>(strings_t::text = "Robert")
+                                    , users_t::second_name = database::insert_into<strings_t>(strings_t::text = "Hooke")
                                     , users_t::age = 67l );
 
 
@@ -112,8 +121,7 @@ int main()
         std::cout << "id: " << id << " first_name: " << first_name << " second_name: " << second_name << " age: " << age << std::endl;
     }
 
-    database::insert_into<users_t>(   users_t::id = 4l
-                                    , users_t::first_name = "Éverton"
+    database::insert_into<users_t>(   users_t::first_name = "Éverton"
                                     , users_t::second_name = "Éverton"
                                     , users_t::age = 31l );
 
