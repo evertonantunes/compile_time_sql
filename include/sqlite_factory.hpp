@@ -165,7 +165,7 @@ namespace database
                 }
             }
 
-            static auto get_last_insert_id()
+            static std::ptrdiff_t get_last_insert_id()
             {
                 return sqlite3_last_insert_rowid(instance()->m_database_connection);
             }
