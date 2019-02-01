@@ -70,6 +70,12 @@ namespace sql
         }
     };
 
+    template<typename Table, typename Name>
+    struct alias : public Table
+    {
+        using name_t = Name;
+    };
+
     namespace operators
     {
         template<typename T>
@@ -271,6 +277,17 @@ namespace sql
             }
         }
 
+        template< typename OP, typename _Table, typename _NameString, typename _Type, typename _Flags>
+        inline auto make_operation( const Column<_Table, _NameString, _Type, _Flags> &value ) const
+        {
+            static_assert(std::is_same<type_t, _Type>::value, "Parameter type does not compatible");
+            using other_t = Column<_Table, _NameString, _Type, _Flags>;
+
+            using namespace operators::comparasion;
+
+            return Comparasion<OP, this_t, other_t>(value); // criar estrutura adequada para armazenar esta informaçao em um tipo
+        }
+
         inline auto operator =( const char *value ) const
         {
             return assign::Value<this_t, std::string_view>(std::string_view(value));
@@ -461,6 +478,12 @@ namespace sql
             static auto where( T &&expression )
             {
                 return SelectFromWhare<SELECT, FROM, T>(std::move(expression));
+            }
+
+            template<typename Table, typename Exp>
+            static auto left_other_join( Exp &&expression )
+            {
+                return SelectFrom<SELECT, FROM>();
             }
 
             static constexpr std::size_t size()
@@ -731,11 +754,8 @@ namespace sql
             {
                 static const constexpr std::size_t size = TableCreator::size();
                 std::string text(size, '.');
-
                 auto it = std::begin(text);
                 TableCreator::accumulate(it);
-
-                std::cout << "sql: " << text << std::endl;
                 return text;
             }
 

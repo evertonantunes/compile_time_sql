@@ -80,11 +80,17 @@ int main()
         std::cout << "id: " << id << " first_name: " << first_name << " second_name: " << second_name << " age: " << age << std::endl;
     }
 
+    using namespace sql;
+    using f_name = alias<strings_t, decltype("f_name"_s)>;
+    using s_name = alias<strings_t, decltype("s_name"_s)>;
+
     for ( auto [id, first_name, second_name, age] : database::select(  users_t::id
-                                                                     , users_t::first_name
-                                                                     , users_t::second_name
+                                                                     , f_name::text
+                                                                     , s_name::text
                                                                      , users_t::age)
           .from<users_t>()
+          .left_other_join<f_name>(f_name::id == users_t::first_name)
+          .left_other_join<s_name>(s_name::id == users_t::second_name)
           .where(users_t::age == 39l) )
     {
         std::cout << "id: " << id << " first_name: " << first_name << " second_name: " << second_name << " age: " << age << std::endl;
