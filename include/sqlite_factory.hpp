@@ -9,6 +9,35 @@ namespace database
 {
     namespace factory
     {
+        class SQLiteError : public std::exception
+        {
+            sqlite3 *m_connection;
+            std::string m_sql;
+            const int m_code;
+        public:
+            SQLiteError( sqlite3 *connection, const int code, std::string &sql )
+                : m_connection(connection)
+                , m_code(code)
+                , m_sql(sql)
+            {}
+
+            virtual const char* what() const _GLIBCXX_TXN_SAFE_DYN _GLIBCXX_USE_NOEXCEPT
+            {
+                return sqlite3_errmsg(m_connection);
+            }
+
+            std::string message() const
+            {
+                std::string message = "[";
+                message += sqlite3_errstr(m_code);
+                message += "] in [";
+                message += m_sql;
+                message += "] ";
+                message += sqlite3_errmsg(m_connection);
+                return message;
+            }
+        };
+
         namespace set
         {
             template<typename CONTEXT, typename T>
@@ -95,7 +124,10 @@ namespace database
                 , m_sql(std::move(sql))
             {
                 m_error_code = sqlite3_prepare_v2(connection, m_sql.c_str(), m_sql.size(), &m_stmt, NULL);
-                assert(m_error_code == SQLITE_OK);
+                if (m_error_code != SQLITE_OK)
+                {
+                    throw SQLiteError(connection, m_error_code, m_sql);
+                }
             }
 
             ~Context( )

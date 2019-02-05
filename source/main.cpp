@@ -58,53 +58,44 @@ int main()
     using strings_t = database::tables::strings;
     using users_t = database::tables::users;
 
-    database::insert_into<users_t>(   users_t::first_name = database::insert_into<strings_t>(strings_t::text = "Blaise")
-                                    , users_t::second_name = database::insert_into<strings_t>(strings_t::text = "Pascal")
-                                    , users_t::age = 39l );
-
-    database::insert_into<users_t>(   users_t::first_name = database::insert_into<strings_t>(strings_t::text = "Leonhard")
-                                    , users_t::second_name = database::insert_into<strings_t>(strings_t::text = "Euler")
-                                    , users_t::age = 76l );
-
-    database::insert_into<users_t>(   users_t::first_name = database::insert_into<strings_t>(strings_t::text = "Robert")
-                                    , users_t::second_name = database::insert_into<strings_t>(strings_t::text = "Hooke")
-                                    , users_t::age = 67l );
-
-
-    for ( auto [id, first_name, second_name, age] : database::select(  users_t::id
-                                                                     , users_t::first_name
-                                                                     , users_t::second_name
-                                                                     , users_t::age)
-          .from<users_t>() )
-    {
-        std::cout << "id: " << id << " first_name: " << first_name << " second_name: " << second_name << " age: " << age << std::endl;
-    }
-
     using namespace sql;
+
     using f_name = alias<strings_t, decltype("f_name"_s)>;
     using s_name = alias<strings_t, decltype("s_name"_s)>;
 
-    for ( auto [id, first_name, second_name, age] : database::select(  users_t::id
-                                                                     , f_name::text
-                                                                     , s_name::text
-                                                                     , users_t::age)
-          .from<users_t>()
-          .left_other_join<f_name>(f_name::id == users_t::first_name)
-          .left_other_join<s_name>(s_name::id == users_t::second_name)
-          .where(users_t::age == 39l) )
+    database::insert_into<users_t>(   users_t::first_name = database::insert_into<strings_t>(strings_t::text = "Blaise")
+                                                            , users_t::second_name = database::insert_into<strings_t>(strings_t::text = "Pascal")
+                                                                                     , users_t::age = 39l );
+
+    database::insert_into<users_t>(   users_t::first_name = database::insert_into<strings_t>(strings_t::text = "Leonhard")
+                                                            , users_t::second_name = database::insert_into<strings_t>(strings_t::text = "Euler")
+                                                                                     , users_t::age = 76l );
+
+    database::insert_into<users_t>(   users_t::first_name = database::insert_into<strings_t>(strings_t::text = "Robert")
+                                                            , users_t::second_name = database::insert_into<strings_t>(strings_t::text = "Hooke")
+                                                                                     , users_t::age = 67l );
+
+
+    using Select_t = decltype(database::select(   users_t::id
+                                                , f_name::as(strings_t::text)
+                                                , s_name::as(strings_t::text)
+                                                , users_t::age)
+                                            .from<users_t>()
+                                            .left_join<f_name>(f_name::as(strings_t::id) == users_t::first_name)
+                                            .left_join<s_name>(s_name::as(strings_t::id) == users_t::second_name));
+
+    for ( auto [id, first_name, second_name, age] : Select_t().where(users_t::age == 39l) )
     {
         std::cout << "id: " << id << " first_name: " << first_name << " second_name: " << second_name << " age: " << age << std::endl;
     }
 
-    database::insert_into<users_t>(   users_t::first_name = "Éverton"
-                                    , users_t::second_name = "Éverton"
-                                    , users_t::age = 31l );
-
     for ( auto [id, first_name, second_name, age] : database::select(  users_t::id
-                                                                     , users_t::first_name
-                                                                     , users_t::second_name
-                                                                     , users_t::age)
-          .from<users_t>() )
+                                                                       , f_name::as(strings_t::text)
+                                                                       , s_name::as(strings_t::text)
+                                                                       , users_t::age)
+          .from<users_t>()
+          .left_join<f_name>(f_name::as(strings_t::id) == users_t::first_name)
+          .left_join<s_name>(s_name::as(strings_t::id) == users_t::second_name) )
     {
         std::cout << "id: " << id << " first_name: " << first_name << " second_name: " << second_name << " age: " << age << std::endl;
     }
