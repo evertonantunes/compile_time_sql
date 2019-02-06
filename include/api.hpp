@@ -433,12 +433,12 @@ namespace sql
                 return *this;
             }
 
-            bool operator==(const Iterator& rhs)
+            bool operator==(const Iterator& rhs) const
             {
                 return is_equal(m_context, rhs.m_context);
             }
 
-            bool operator!=(const Iterator& rhs)
+            bool operator!=(const Iterator& rhs) const
             {
                 return !is_equal(m_context, rhs.m_context);
             }

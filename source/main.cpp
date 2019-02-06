@@ -64,16 +64,16 @@ int main()
     using s_name = alias<strings_t, decltype("s_name"_s)>;
 
     database::insert_into<users_t>(   users_t::first_name = database::insert_into<strings_t>(strings_t::text = "Blaise")
-                                                            , users_t::second_name = database::insert_into<strings_t>(strings_t::text = "Pascal")
-                                                                                     , users_t::age = 39l );
+                                    , users_t::second_name = database::insert_into<strings_t>(strings_t::text = "Pascal")
+                                    , users_t::age = 39l );
 
     database::insert_into<users_t>(   users_t::first_name = database::insert_into<strings_t>(strings_t::text = "Leonhard")
-                                                            , users_t::second_name = database::insert_into<strings_t>(strings_t::text = "Euler")
-                                                                                     , users_t::age = 76l );
+                                    , users_t::second_name = database::insert_into<strings_t>(strings_t::text = "Euler")
+                                    , users_t::age = 76l );
 
     database::insert_into<users_t>(   users_t::first_name = database::insert_into<strings_t>(strings_t::text = "Robert")
-                                                            , users_t::second_name = database::insert_into<strings_t>(strings_t::text = "Hooke")
-                                                                                     , users_t::age = 67l );
+                                    , users_t::second_name = database::insert_into<strings_t>(strings_t::text = "Hooke")
+                                    , users_t::age = 67l );
 
 
     using Select_t = decltype(database::select(   users_t::id

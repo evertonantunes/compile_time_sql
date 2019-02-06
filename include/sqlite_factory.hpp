@@ -134,7 +134,7 @@ namespace database
             {
                 if (m_stmt)
                 {
-                    //sqlite3_finalize(m_stmt);
+                  //  sqlite3_finalize(m_stmt);
                 }
             }
         };
@@ -180,6 +180,12 @@ namespace database
             ~SQLite()
             {
                 sqlite3_close(m_database_connection);
+            }
+
+            void reset()
+            {
+                sqlite3_close(m_database_connection);
+                sqlite3_open(":memory:", &m_database_connection);
             }
 
             static SQLite* instance()
