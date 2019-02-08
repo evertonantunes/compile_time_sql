@@ -2,16 +2,6 @@
 #include <vector>
 #include <algorithm>
 #include <type_traits>
-#include <assert.h>
-
-namespace std
-{
-    template<typename T, typename H>
-    inline constexpr void copy( const T &from, H &to )
-    {
-        to = std::copy(std::begin(from), std::end(from), to);
-    }
-}
 
 namespace sql
 {
@@ -24,6 +14,18 @@ namespace sql
         static const constexpr std::size_t size = sizeof ... (String);
     };
 
+    template<char ... String>
+    inline void add( std::string::iterator &it, const StaticArray<String...> &str )
+    {
+        it = std::copy(std::begin(str.data), std::end(str.data), it);
+    }
+
+    template<char ... String>
+    inline void constexpr add( std::size_t &size, const StaticArray<String...> &str )
+    {
+        size += str.size;
+    }
+
     template<typename CharT, CharT ...String>
     constexpr auto operator "" _s( )
     {
@@ -34,32 +36,42 @@ namespace sql
     struct Table
     {
         using name_t = T;
+    };
 
-        static constexpr auto name()
-        {
-            return std::string_view(name_t::data, name_t::size);
-        }
+    template<typename Table, typename Name>
+    struct alias : public Table
+    {
+        using alias_t = Name;
+        using this_t = alias<Table, Name>;
 
-        static constexpr auto table_name()
+        template<typename T>
+        static constexpr auto as( const T & )
         {
-            return name();
+            return T::template alias<this_t>();
         }
     };
+
+    template<typename Table, typename Name>
+    constexpr bool is_alias( const alias<Table, Name> & )
+    {
+        return true;
+    }
+
+    template<typename Name>
+    constexpr bool is_alias( const Table<Name> & )
+    {
+        return false;
+    }
 
     namespace operators
     {
         template<typename T>
         struct Operator
         {
-            template<typename I>
-            static constexpr void write( I &iterator )
+            template<typename F>
+            static constexpr void accumulate( F &out )
             {
-                copy(T::data, iterator);
-            }
-
-            static constexpr std::size_t size()
-            {
-                return T::size;
+                add(out, T());
             }
         };
 
@@ -78,22 +90,17 @@ namespace sql
                     , m_r(std::move(r))
                 {}
 
-                template<typename IT>
-                static constexpr void write( IT &iterator )
-                {
-                    L::write(iterator);
-                    OP::write(iterator);
-                    R::write(iterator);
-                }
-
                 auto data() const
                 {
                     return std::tuple_cat(m_l.data(), m_r.data());
                 }
 
-                static constexpr std::size_t size()
+                template<typename F>
+                static constexpr void accumulate( F &out )
                 {
-                    return L::size() + OP::size() + R::size();
+                    L::accumulate(out);
+                    OP::accumulate(out);
+                    R::accumulate(out);
                 }
 
                 template< typename T >
@@ -108,9 +115,36 @@ namespace sql
                     return Logical<Or, Logical<OP,L,R>, T>(std::move(*this), std::move(other));
                 }
             };
+
+            template<typename OP, typename L, typename R>
+            struct TypeLogical
+            {
+                TypeLogical( )
+                {}
+
+                template<typename F>
+                static constexpr void accumulate( F &out )
+                {
+                    L::accumulate(out);
+                    OP::accumulate(out);
+                    R::accumulate(out);
+                }
+
+                template< typename T >
+                auto operator &&( T && )
+                {
+                    return TypeLogical<And, Logical<OP,L,R>, T>();
+                }
+
+                template< typename T >
+                auto operator ||( T && )
+                {
+                    return TypeLogical<Or, Logical<OP,L,R>, T>();
+                }
+            };
         }
 
-        namespace comparasion
+        namespace comparation
         {
             using Equals = Operator<decltype(" == "_s)>;
             using NotEquals = Operator<decltype(" != "_s)>;
@@ -120,27 +154,39 @@ namespace sql
             using GreaterThanEqual = Operator<decltype(" >= "_s)>;
 
             template<typename OP, typename T, typename H>
-            struct Comparasion
+            struct Comparation
             {
-                static constexpr const string_t m_text = string_t("?");
-
                 H m_data;
 
-                Comparasion( H data  )
+                Comparation( H data  )
                     : m_data(data)
                 { }
 
-                template<typename IT>
-                static constexpr void write( IT &iterator )
+                template<typename COLUMN, typename OUT>
+                static constexpr void accumulate_column( OUT &out )
                 {
-                    copy(T::name(), iterator);
-                    OP::write(iterator);
-                    copy(m_text, iterator);
+                    using table_t = typename COLUMN::table_t;
+
+                    if constexpr (is_alias(table_t()))
+                    {
+                        add(out, typename table_t::alias_t());
+                        add(out, "."_s);
+                        add(out, typename COLUMN::name_t());
+                    }
+                    else
+                    {
+                        add(out, typename table_t::name_t());
+                        add(out, "."_s);
+                        add(out, typename COLUMN::name_t());
+                    }
                 }
 
-                static constexpr std::size_t size()
+                template<typename F>
+                static constexpr void accumulate( F &out )
                 {
-                    return T::name_t::size + OP::size() + m_text.size();
+                    accumulate_column<T>(out);
+                    OP::accumulate(out);
+                    add(out, "?"_s);
                 }
 
                 auto data() const
@@ -151,13 +197,59 @@ namespace sql
                 template< typename OTHER >
                 auto operator &&( OTHER &&other )
                 {
-                    return logical::Logical<logical::And, Comparasion<OP,T,H>, OTHER>(std::move(*this), std::move(other));
+                    return logical::Logical<logical::And, Comparation<OP,T,H>, OTHER>(std::move(*this), std::move(other));
                 }
 
                 template< typename OTHER >
                 auto operator ||( OTHER &&other )
                 {
-                    return logical::Logical<logical::Or, Comparasion<OP, T,H>, OTHER>(std::move(*this), std::move(other));
+                    return logical::Logical<logical::Or, Comparation<OP, T,H>, OTHER>(std::move(*this), std::move(other));
+                }
+            };
+
+            template<typename OP, typename T, typename H>
+            struct TypeComparation
+            {
+                TypeComparation()
+                { }
+
+                template<typename COLUMN, typename OUT>
+                static constexpr void accumulate_column( OUT &out )
+                {
+                    using table_t = typename COLUMN::table_t;
+
+                    if constexpr (is_alias(table_t()))
+                    {
+                        add(out, typename table_t::alias_t());
+                        add(out, "."_s);
+                        add(out, typename COLUMN::name_t());
+                    }
+                    else
+                    {
+                        add(out, typename table_t::name_t());
+                        add(out, "."_s);
+                        add(out, typename COLUMN::name_t());
+                    }
+                }
+
+                template<typename F>
+                static constexpr void accumulate( F &out )
+                {
+                    accumulate_column<T>(out);
+                    OP::accumulate(out);
+                    accumulate_column<H>(out);
+                }
+
+                template< typename OTHER >
+                auto operator &&( OTHER && )
+                {
+                    return logical::TypeLogical<logical::And, TypeComparation<OP,T,H>, OTHER>();
+                }
+
+                template< typename OTHER >
+                auto operator ||( OTHER && )
+                {
+                    return logical::TypeLogical<logical::Or, TypeComparation<OP,T,H>, OTHER>();
                 }
             };
         }
@@ -170,19 +262,11 @@ namespace sql
         {
             T m_data;
 
+            using column_t = C;
+
             Value( T data  )
                 : m_data(data)
             { }
-
-            static constexpr auto name()
-            {
-                return C::name();
-            }
-
-            static constexpr auto size()
-            {
-                return C::name_t::size;
-            }
 
             auto data() const
             {
@@ -193,7 +277,24 @@ namespace sql
 
     struct not_null {};
     struct pk {};
-    struct fk {};
+
+    template<typename T = void>
+    struct fk
+    {
+        using column_t = T;
+    };
+
+    template< template<typename> class T, typename A>
+    constexpr bool is_same_flag( T<A>,  fk<> )
+    {
+        return true;
+    }
+
+    template<typename T, typename H>
+    constexpr bool is_same_flag( T, H )
+    {
+        return std::is_same_v<T, H>;
+    }
 
     template<typename ...T>
     struct Flags
@@ -205,6 +306,22 @@ namespace sql
         {
             const constexpr bool result = ((std::is_same_v<T, H>) || ... || false);
             return result;
+        }
+
+        template<typename SELECT, typename F>
+        static constexpr void call_if( F &&func )
+        {
+            (impl_call_if<T, SELECT>(func), ...);
+        }
+
+    private:
+        template<typename ITEM, typename SELECT, typename F>
+        static constexpr void impl_call_if( F &func )
+        {
+            if constexpr (is_same_flag(ITEM(), SELECT()))
+            {
+                func(ITEM());
+            }
         }
     };
 
@@ -218,33 +335,40 @@ namespace sql
 
         using this_t = Column<table_t, name_t, type_t, flags_t>;
 
-        static constexpr const bool is_not_null = flags_t::template is<not_null>();
-
-        static constexpr auto name()
+        template<typename T>
+        static auto alias()
         {
-            return std::string_view(name_t::data, name_t::size);
+            return Column<T, name_t, type_t, flags_t>();
         }
 
         template< typename OP, typename VALUE >
         inline auto make_operation( const VALUE &value ) const
         {
-            using namespace operators::comparasion;
+            using namespace operators::comparation;
 
             if constexpr (std::is_same<const char*, VALUE>::value)
             {
                 static_assert(std::is_same_v<type_t, std::string> || std::is_same_v<type_t, std::string_view>, "Parameter type does not compatible");
-                return Comparasion<OP, this_t, std::string_view>(std::string_view(value));
+                return Comparation<OP, this_t, std::string_view>(std::string_view(value));
             }
             else if constexpr (std::is_same_v<std::string, VALUE>)
             {
                 static_assert(std::is_same_v<type_t, std::string> || std::is_same_v<type_t, std::string_view>, "Parameter type does not compatible");
-                return Comparasion<OP, this_t, const std::string&>(value);
+                return Comparation<OP, this_t, const std::string&>(value);
             }
             else
             {
                 static_assert(std::is_same<type_t, VALUE>::value, "Parameter type does not compatible");
-                return Comparasion<OP, this_t, VALUE>(value);
+                return Comparation<OP, this_t, VALUE>(value);
             }
+        }
+
+        template< typename OP, typename _Table, typename _NameString, typename _Type, typename _Flags>
+        inline auto make_operation( const Column<_Table, _NameString, _Type, _Flags> &value ) const
+        {
+            static_assert(std::is_same<type_t, _Type>::value, "Parameter type does not compatible");
+            using other_t = Column<_Table, _NameString, _Type, _Flags>;
+            return operators::comparation::TypeComparation<OP, this_t, other_t>();
         }
 
         inline auto operator =( const char *value ) const
@@ -255,67 +379,68 @@ namespace sql
         template< typename VALUE >
         inline auto operator =( const VALUE &value ) const
         {
+            static_assert(std::is_same<type_t, VALUE>::value, "Parameter type does not compatible");
             return assign::Value<this_t, VALUE>(value);
         }
 
         inline auto operator ==( const char *value ) const
         {
-            return make_operation<operators::comparasion::Equals>(value);
+            return make_operation<operators::comparation::Equals>(value);
         }
 
         inline auto operator ==( const auto &value ) const
         {
-            return make_operation<operators::comparasion::Equals>(value);
+            return make_operation<operators::comparation::Equals>(value);
         }
 
         inline auto operator !=( const char *value ) const
         {
-            return make_operation<operators::comparasion::NotEquals>(value);
+            return make_operation<operators::comparation::NotEquals>(value);
         }
 
         inline auto operator !=( const auto &value ) const
         {
-            return make_operation<operators::comparasion::NotEquals>(value);
+            return make_operation<operators::comparation::NotEquals>(value);
         }
 
         inline auto operator <( const char *value ) const
         {
-            return make_operation<operators::comparasion::LessThan>(value);
+            return make_operation<operators::comparation::LessThan>(value);
         }
 
         inline auto operator <( const auto &value ) const
         {
-            return make_operation<operators::comparasion::LessThan>(value);
+            return make_operation<operators::comparation::LessThan>(value);
         }
 
         inline auto operator <=( const char *value ) const
         {
-            return make_operation<operators::comparasion::LessThanEqual>(value);
+            return make_operation<operators::comparation::LessThanEqual>(value);
         }
 
         inline auto operator <=( const auto &value ) const
         {
-            return make_operation<operators::comparasion::LessThanEqual>(value);
+            return make_operation<operators::comparation::LessThanEqual>(value);
         }
 
         inline auto operator >( const char *value ) const
         {
-            return make_operation<operators::comparasion::GreaterThan>(value);
+            return make_operation<operators::comparation::GreaterThan>(value);
         }
 
         inline auto operator >( const auto &value ) const
         {
-            return make_operation<operators::comparasion::GreaterThan>(value);
+            return make_operation<operators::comparation::GreaterThan>(value);
         }
 
         inline auto operator >=( const char *value ) const
         {
-            return make_operation<operators::comparasion::GreaterThanEqual>(value);
+            return make_operation<operators::comparation::GreaterThanEqual>(value);
         }
 
         inline auto operator >=( const auto &value ) const
         {
-            return make_operation<operators::comparasion::GreaterThanEqual>(value);
+            return make_operation<operators::comparation::GreaterThanEqual>(value);
         }
     };
 
@@ -348,12 +473,12 @@ namespace sql
                 return *this;
             }
 
-            bool operator==(const Iterator& rhs)
+            bool operator==(const Iterator& rhs) const
             {
                 return is_equal(m_context, rhs.m_context);
             }
 
-            bool operator!=(const Iterator& rhs)
+            bool operator!=(const Iterator& rhs) const
             {
                 return !is_equal(m_context, rhs.m_context);
             }
@@ -364,54 +489,47 @@ namespace sql
             }
         };
 
-        template<typename SELECT, typename FROM, typename WHARE>
-        struct SelectFromWhare
+        template<typename T, typename WHERE>
+        struct SelectFromWHERE
         {
-            static const constexpr string_t m_text = string_t(" WHERE ");
-            static const constexpr string_t m_text_end = string_t(";");
+            WHERE m_where;
 
-            WHARE m_whare;
+            using ConnectionFactory = typename T::ConnectionFactory;
 
-            using ConnectionFactory = typename SELECT::ConnectionFactory;
+            using iterator_t = typename T::iterator_t;
 
-            using iterator_t = Iterator<typename ConnectionFactory::context_t, typename SELECT::row_t>;
-
-            SelectFromWhare( WHARE &&whare )
-                : m_whare(std::move(whare))
+            SelectFromWHERE( WHERE &&where )
+                : m_where(std::move(where))
             {}
+
+            template<typename F>
+            static constexpr void accumulate( F &out )
+            {
+                T::accumulate(out);
+                add(out, "WHERE "_s);
+                WHERE::accumulate(out);
+                add(out, ";"_s);
+            }
 
             static constexpr std::size_t size()
             {
-                return  SELECT::size() + FROM::size() + m_text.size() + WHARE::size() + m_text_end.size();
+                std::size_t size = 0;
+                SelectFromWHERE::accumulate(size);
+                return size;
             }
 
-            template<typename IT>
-            static constexpr void write( IT &iterator )
+            auto get_sql() const
             {
-                copy(m_text, iterator);
-                WHARE::write(iterator);
-                copy(m_text_end, iterator);
-            }
-
-            auto get_query() const
-            {
-                const constexpr std::size_t buffer_size = SelectFromWhare::size();
-
+                const constexpr std::size_t buffer_size = SelectFromWHERE::size();
                 std::string text(buffer_size, '.');
                 auto it = std::begin(text);
-
-                SELECT::write(it);
-                FROM::write(it);
-                SelectFromWhare::write(it);
-
-                assert(it == std::end(text));
-
+                SelectFromWHERE::accumulate(it);
                 return text;
             }
 
             auto create_statement() const
             {
-                return ConnectionFactory::make_context(get_query(), m_whare.data());
+                return ConnectionFactory::make_context(get_sql(), m_where.data());
             }
 
             iterator_t begin() const
@@ -425,43 +543,79 @@ namespace sql
             }
         };
 
-        template<typename SELECT, typename FROM>
+        template<typename StringType, typename Table, typename EXP>
+        struct Join
+        {
+            template<typename OUT>
+            static constexpr void accumulate( OUT &out )
+            {
+                add(out, StringType());
+                if constexpr (is_alias(Table()))
+                {
+                    add(out, typename Table::name_t());
+                    add(out, " as "_s);
+                    add(out, typename Table::alias_t());
+                }
+                else
+                {
+                    add(out, typename Table::table_t());
+                }
+                add(out, " ON "_s);
+                EXP::accumulate(out);
+                add(out, " "_s);
+            }
+        };
+
+        template<typename SELECT, typename FROM, typename ... JOIN>
         struct SelectFrom
         {
-            static const constexpr string_t m_text_end = string_t(";");
+            using row_t = typename SELECT::row_t;
             using ConnectionFactory = typename SELECT::ConnectionFactory;
             using iterator_t = Iterator<typename ConnectionFactory::context_t, typename SELECT::row_t>;
+
+            using this_t = SelectFrom<SELECT, FROM, JOIN...>;
 
             template<typename T>
             static auto where( T &&expression )
             {
-                return SelectFromWhare<SELECT, FROM, T>(std::move(expression));
+                return SelectFromWHERE<this_t, T>(std::move(expression));
+            }
+
+            template<typename Table, typename Exp>
+            static constexpr auto left_join( Exp && )
+            {
+                using join_type_t = decltype("LEFT JOIN "_s);
+                return SelectFrom<SELECT, FROM, JOIN..., Join<join_type_t, Table, Exp>>();
+            }
+
+            template<typename OUT>
+            static constexpr void accumulate( OUT &out )
+            {
+                SELECT::accumulate(out);
+                FROM::accumulate(out);
+                (JOIN::accumulate(out), ... );
             }
 
             static constexpr std::size_t size()
             {
-                return  SELECT::size() + FROM::size() + m_text_end.size();
+                std::size_t size = 0;
+                SelectFrom::accumulate(size);
+                return size;
             }
 
-            auto get_query() const
+            auto get_sql() const
             {
-                const constexpr std::size_t buffer_size = SelectFrom::size();
-
+                const constexpr std::size_t buffer_size = SelectFrom::size() + 1;
                 std::string text(buffer_size, '.');
                 auto it = std::begin(text);
-
-                SELECT::write(it);
-                FROM::write(it);
-                copy(m_text_end, it);
-
-                assert(it == std::end(text));
-
+                SelectFrom::accumulate(it);
+                *it = ';';                
                 return text;
             }
 
             auto create_statement() const
             {
-                return ConnectionFactory::make_context(get_query(), std::tuple<>{});
+                return ConnectionFactory::make_context(get_sql(), std::tuple<>{});
             }
 
             iterator_t begin() const
@@ -478,18 +632,21 @@ namespace sql
         template<typename T>
         struct From
         {
-            static const constexpr string_t m_data = string_t("FROM ");
-
-            template<typename IT>
-            static constexpr void write( IT &iterator )
+            template<typename F>
+            static constexpr void accumulate( F &out )
             {
-                copy(m_data, iterator);
-                copy(T::table_name(), iterator);
-            }
-
-            static constexpr std::size_t size()
-            {
-                return  m_data.size() + T::table_name().size();
+                add(out, "FROM "_s);
+                if constexpr (is_alias(T()))
+                {
+                    add(out, typename T::name_t());
+                    add(out, " as "_s);
+                    add(out, typename T::alias_t());
+                }
+                else
+                {
+                    add(out, typename T::name_t());
+                }
+                add(out, " "_s);
             }
         };
 
@@ -499,30 +656,37 @@ namespace sql
             using ConnectionFactory = F;
             typedef std::tuple< typename T::type_t ... > row_t;
 
-            static const constexpr string_t m_text = string_t("SELECT ");
-            static const constexpr string_t m_text_sep = string_t(", ");
-            static const constexpr string_t m_text_end = string_t(" ");
-
-            template<typename IT>
-            static constexpr void write( IT &iterator )
+            template<typename COLUMN, typename OUT >
+            static constexpr void accumulate_columns( OUT &out, const std::size_t index )
             {
-                copy(m_text, iterator);
-                const auto names = {T::name()...};
-                std::for_each(begin(names), std::prev(end(names)), [&]( const auto &item )
+                using flags_t = typename COLUMN::flags_t;
+                using table_t = typename COLUMN::table_t;
+
+                if (index > 0)
                 {
-                    copy(item, iterator);
-                    copy(m_text_sep, iterator);
-                });
-                copy(*std::prev(end(names)), iterator);
-                copy(m_text_end, iterator);
+                    add(out, ", "_s);
+                }
+                if constexpr (is_alias(table_t()))
+                {
+                    add(out, typename table_t::alias_t());
+                    add(out, "."_s);
+                    add(out, typename COLUMN::name_t());
+                }
+                else
+                {
+                    add(out, typename table_t::name_t());
+                    add(out, "."_s);
+                    add(out, typename COLUMN::name_t());
+                }
             }
 
-            static constexpr std::size_t size()
+            template<typename OUT>
+            static constexpr void accumulate( OUT &out )
             {
-                return    m_text.size()
-                        + ((T::name_t::size) + ... + 0) // columns names sizes
-                        + ((sizeof ... (T) - 1) * m_text_sep.size()) // columns names separators
-                        + m_text_end.size(); // last separator
+                add(out, "SELECT "_s);
+                std::size_t index = 0;
+                (accumulate_columns<T>(out, index++), ... ); // columns names and separators
+                add(out, " "_s);
             }
 
             template<typename H>
@@ -538,78 +702,185 @@ namespace sql
         {
             DATA m_data;
 
-            static const constexpr string_t m_text = string_t("INSERT INTO ");
-            static const constexpr string_t m_text_sep = string_t(", ");
-            static const constexpr string_t m_space = string_t(" ");
-            static const constexpr string_t m_open = string_t("(");
-            static const constexpr string_t m_values = string_t(") VALUES (");
-            static const constexpr string_t m_quest = string_t("?");
-            static const constexpr string_t m_end = string_t(");");
-
             Insert( DATA &&data )
                 : m_data(std::move(data))
             { }
 
-            template<typename IT>
-            void write( IT &iterator ) const
+            template<typename COLUMN, typename F >
+            static constexpr void accumulate_columns( F &out, const std::size_t index )
             {
-                copy(m_text, iterator);
-                copy(TABLE::table_name(), iterator);
-                copy(m_space, iterator);
-                copy(m_open, iterator);
+                using flags_t = typename COLUMN::flags_t;
 
-                const auto names = {T::name()...};
-
-                std::for_each(begin(names), std::prev(end(names)), [&]( const auto &item )
+                if (index > 0)
                 {
-                    copy(item, iterator);
-                    copy(m_text_sep, iterator);
-                });
-                copy(*std::prev(end(names)), iterator);
+                    add(out, ","_s);
+                }
 
-                copy(m_values, iterator);
+                add(out, typename COLUMN::name_t());
+            }
 
-                std::for_each(begin(names), std::prev(end(names)), [&]( const auto & )
+            template<typename COLUMN, typename F >
+            static constexpr void accumulate_args( F &out, const std::size_t index )
+            {
+                using flags_t = typename COLUMN::flags_t;
+
+                if (index > 0)
                 {
-                    copy(m_quest, iterator);
-                    copy(m_text_sep, iterator);
-                });
-                copy(m_quest, iterator);
-                copy(m_end, iterator);
+                    add(out, ","_s);
+                }
+
+                add(out, "?"_s);
+            }
+
+            template<typename F>
+            static constexpr void accumulate( F &out )
+            {
+                add(out, "INSERT INTO "_s);
+                add(out, typename TABLE::name_t());
+                add(out, "("_s);
+                std::size_t index = 0;
+                ((accumulate_columns<typename T::column_t>(out, index++)), ... ); // columns names and separators
+                add(out, ") VALUES ("_s);
+                index = 0;
+                ((accumulate_args<typename T::column_t>(out, index++)), ... ); // columns names and separators
+                add(out, ");"_s);
             }
 
             static constexpr std::size_t size()
             {
-                return    m_text.size()
-                        + TABLE::table_name().size()
-                        + m_space.size()
-                        + m_open.size()
-                        + ((T::size()) + ... + 0) // columns names sizes
-                        + ((sizeof ... (T) - 1) * m_text_sep.size()) // columns names separators
-                        + m_values.size()
-                        + (sizeof ... (T) * m_quest.size()) // columns names separators
-                        + ((sizeof ... (T) - 1) * m_text_sep.size()) // columns names separators
-                        + m_end.size(); // last separator
-                return 0;
+                std::size_t size = 0;
+                Insert::accumulate(size);
+                return size;
             }
 
-            std::string get_query() const
+            static auto get_sql()
             {
-                const constexpr std::size_t buffer_size = Insert::size();
-                std::string text(buffer_size, '.');
+                static const constexpr std::size_t size = Insert::size();
+                std::string text(size, '.');
                 auto it = std::begin(text);
-                this->write(it);
-                assert(it == end(text));
+                Insert::accumulate(it);
                 return text;
             }
 
-            void run() const
-            {
-                auto context = FACTORY::make_context(get_query(), std::move(m_data));
+            auto run() const
+            {                
+                auto context = FACTORY::make_context(get_sql(), std::move(m_data));
                 std::tuple<> tp;
                 next(context, tp);
+                return FACTORY::get_last_insert_id();
             }
         };
+
+        template<typename Factory, typename Table, typename ...COLUMNS>
+        struct TableCreator
+        {
+            template<typename T, typename F >
+            static constexpr void accumulate_constraint( F &out )
+            {
+                using flags_t = typename T::flags_t;
+
+                flags_t::template call_if<pk>([&out]( const auto )
+                {
+                    using table_t = typename T::table_t;
+                    add(out, ", CONSTRAINT PK_"_s);
+                    add(out, typename table_t::name_t());
+                    add(out, " PRIMARY KEY"_s);
+                    add(out, " ("_s);
+                    add(out, typename T::name_t());
+                    add(out, ")"_s);
+                });
+
+                flags_t::template call_if<fk<>>([&out]( const auto fk )
+                {
+                    using fk_t = decltype(fk);
+                    using fk_column_t = typename fk_t::column_t;
+                    using fk_table_t = typename fk_column_t::table_t;
+
+                    add(out, ", FOREIGN KEY ("_s);
+                    add(out, typename T::name_t());
+                    add(out, ") REFERENCES "_s);
+                    add(out, typename fk_table_t::name_t());
+                    add(out, "("_s);
+                    add(out, typename fk_column_t::name_t());
+                    add(out, ")"_s);
+                });
+            }
+
+            template<typename T, typename F >
+            static constexpr void accumulate_type( F &out )
+            {
+                if constexpr (std::is_same_v<std::string, T>)
+                {
+                    add(out, " TEXT"_s);
+                }
+                else if constexpr (std::is_same_v<std::string_view, T>)
+                {
+                    add(out, " TEXT"_s);
+                }
+                else if constexpr (std::is_same_v<std::ptrdiff_t, T>)
+                {
+                    add(out, " INTEGER"_s);
+                }
+            }
+
+            template<typename T, typename F >
+            static constexpr void accumulate_columns( F &out, const std::size_t index )
+            {
+                using flags_t = typename T::flags_t;
+
+                if (index > 0)
+                {
+                    add(out, ","_s);
+                }
+
+                add(out, typename T::name_t());
+                accumulate_type<typename T::type_t>(out);
+                if constexpr (flags_t::template is<not_null>())
+                {
+                    add(out, " NOT NULL"_s);
+                }
+            }
+
+            template<typename F>
+            static constexpr void accumulate( F &out )
+            {
+                add(out, "CREATE TABLE "_s);
+                add(out, typename Table::name_t());
+                add(out, "("_s);
+                std::size_t index = 0;
+                (accumulate_columns<COLUMNS>(out, index++), ... );
+                (accumulate_constraint<COLUMNS>(out), ... );
+                add(out, ")"_s);
+                add(out, ";"_s);
+            }
+
+            static constexpr std::size_t size()
+            {
+                std::size_t size = 0;
+                TableCreator::accumulate(size);
+                return size;
+            }
+
+            static auto get_sql()
+            {
+                static const constexpr std::size_t size = TableCreator::size();
+                std::string text(size, '.');
+                auto it = std::begin(text);
+                TableCreator::accumulate(it);
+                return text;
+            }
+
+            static void run()
+            {
+                Factory::instance()->execute(get_sql());
+            }
+        };
+
+        template<typename Factory, typename Table, typename ...COLUMNS>
+        static void create_table( const std::tuple<COLUMNS...> & )
+        {
+            TableCreator<Factory, Table, COLUMNS...>::run();
+        }
     }
 
     template<typename F, typename ...T>
@@ -619,10 +890,15 @@ namespace sql
     }
 
     template<typename FACTORY, typename TABLE, typename ...COLUMNS>
-    void insert_into( COLUMNS &&...args )
+    auto insert_into( COLUMNS &&...args )
     {
         auto _tup = std::tuple_cat(args.data()...);
-        impl::Insert<FACTORY, TABLE, decltype(_tup), COLUMNS...>(std::move(_tup)).run();
+        return impl::Insert<FACTORY, TABLE, decltype(_tup), COLUMNS...>(std::move(_tup)).run();
     }
 
+    template<typename Factory, typename Table>
+    static void create_table()
+    {
+        impl::create_table<Factory, Table>(typename Table::columns());
+    }
 }
