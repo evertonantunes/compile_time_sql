@@ -7,16 +7,6 @@ namespace sql
 {
     using string_t = std::string_view;
 
-    inline void add( std::string::iterator &it, const string_t &str )
-    {
-        it = std::copy(str.begin(), str.end(), it);
-    }
-
-    inline  void constexpr add( std::size_t &size, const string_t &str )
-    {
-        size += str.size();
-    }
-
     template<char ... String>
     struct StaticArray
     {
@@ -166,20 +156,37 @@ namespace sql
             template<typename OP, typename T, typename H>
             struct Comparation
             {
-                static constexpr const string_t m_text = string_t("?");
-
                 H m_data;
 
                 Comparation( H data  )
                     : m_data(data)
                 { }
 
+                template<typename COLUMN, typename OUT>
+                static constexpr void accumulate_column( OUT &out )
+                {
+                    using table_t = typename COLUMN::table_t;
+
+                    if constexpr (is_alias(table_t()))
+                    {
+                        add(out, typename table_t::alias_t());
+                        add(out, "."_s);
+                        add(out, typename COLUMN::name_t());
+                    }
+                    else
+                    {
+                        add(out, typename table_t::name_t());
+                        add(out, "."_s);
+                        add(out, typename COLUMN::name_t());
+                    }
+                }
+
                 template<typename F>
                 static constexpr void accumulate( F &out )
                 {
-                    add(out, typename T::name_t());
+                    accumulate_column<T>(out);
                     OP::accumulate(out);
-                    add(out, m_text);
+                    add(out, "?"_s);
                 }
 
                 auto data() const
@@ -214,13 +221,13 @@ namespace sql
                     if constexpr (is_alias(table_t()))
                     {
                         add(out, typename table_t::alias_t());
-                        add(out, ".");
+                        add(out, "."_s);
                         add(out, typename COLUMN::name_t());
                     }
                     else
                     {
                         add(out, typename table_t::name_t());
-                        add(out, ".");
+                        add(out, "."_s);
                         add(out, typename COLUMN::name_t());
                     }
                 }
@@ -270,7 +277,24 @@ namespace sql
 
     struct not_null {};
     struct pk {};
-    struct fk {};
+
+    template<typename T = void>
+    struct fk
+    {
+        using column_t = T;
+    };
+
+    template< template<typename> class T, typename A>
+    constexpr bool is_same_flag( T<A>,  fk<> )
+    {
+        return true;
+    }
+
+    template<typename T, typename H>
+    constexpr bool is_same_flag( T, H )
+    {
+        return std::is_same_v<T, H>;
+    }
 
     template<typename ...T>
     struct Flags
@@ -282,6 +306,22 @@ namespace sql
         {
             const constexpr bool result = ((std::is_same_v<T, H>) || ... || false);
             return result;
+        }
+
+        template<typename SELECT, typename F>
+        static constexpr void call_if( F &&func )
+        {
+            (impl_call_if<T, SELECT>(func), ...);
+        }
+
+    private:
+        template<typename ITEM, typename SELECT, typename F>
+        static constexpr void impl_call_if( F &func )
+        {
+            if constexpr (is_same_flag(ITEM(), SELECT()))
+            {
+                func(ITEM());
+            }
         }
     };
 
@@ -466,9 +506,9 @@ namespace sql
             static constexpr void accumulate( F &out )
             {
                 T::accumulate(out);
-                add(out, "WHERE ");
+                add(out, "WHERE "_s);
                 WHERE::accumulate(out);
-                add(out, ";");
+                add(out, ";"_s);
             }
 
             static constexpr std::size_t size()
@@ -513,16 +553,16 @@ namespace sql
                 if constexpr (is_alias(Table()))
                 {
                     add(out, typename Table::name_t());
-                    add(out, " as ");
+                    add(out, " as "_s);
                     add(out, typename Table::alias_t());
                 }
                 else
                 {
                     add(out, typename Table::table_t());
                 }
-                add(out, " ON ");
+                add(out, " ON "_s);
                 EXP::accumulate(out);
-                add(out, " ");
+                add(out, " "_s);
             }
         };
 
@@ -569,7 +609,7 @@ namespace sql
                 std::string text(buffer_size, '.');
                 auto it = std::begin(text);
                 SelectFrom::accumulate(it);
-                *it = ';';
+                *it = ';';                
                 return text;
             }
 
@@ -595,18 +635,18 @@ namespace sql
             template<typename F>
             static constexpr void accumulate( F &out )
             {
-                add(out, "FROM ");
+                add(out, "FROM "_s);
                 if constexpr (is_alias(T()))
                 {
                     add(out, typename T::name_t());
-                    add(out, " as ");
+                    add(out, " as "_s);
                     add(out, typename T::alias_t());
                 }
                 else
                 {
                     add(out, typename T::name_t());
                 }
-                add(out, " ");
+                add(out, " "_s);
             }
         };
 
@@ -624,18 +664,18 @@ namespace sql
 
                 if (index > 0)
                 {
-                    add(out, ", ");
+                    add(out, ", "_s);
                 }
                 if constexpr (is_alias(table_t()))
                 {
                     add(out, typename table_t::alias_t());
-                    add(out, ".");
+                    add(out, "."_s);
                     add(out, typename COLUMN::name_t());
                 }
                 else
                 {
                     add(out, typename table_t::name_t());
-                    add(out, ".");
+                    add(out, "."_s);
                     add(out, typename COLUMN::name_t());
                 }
             }
@@ -643,10 +683,10 @@ namespace sql
             template<typename OUT>
             static constexpr void accumulate( OUT &out )
             {
-                add(out, "SELECT ");
+                add(out, "SELECT "_s);
                 std::size_t index = 0;
                 (accumulate_columns<T>(out, index++), ... ); // columns names and separators
-                add(out, " ");
+                add(out, " "_s);
             }
 
             template<typename H>
@@ -673,7 +713,7 @@ namespace sql
 
                 if (index > 0)
                 {
-                    add(out, ",");
+                    add(out, ","_s);
                 }
 
                 add(out, typename COLUMN::name_t());
@@ -686,24 +726,24 @@ namespace sql
 
                 if (index > 0)
                 {
-                    add(out, ",");
+                    add(out, ","_s);
                 }
 
-                add(out, "?");
+                add(out, "?"_s);
             }
 
             template<typename F>
             static constexpr void accumulate( F &out )
             {
-                add(out, "INSERT INTO ");
+                add(out, "INSERT INTO "_s);
                 add(out, typename TABLE::name_t());
-                add(out, "(");
+                add(out, "("_s);
                 std::size_t index = 0;
                 ((accumulate_columns<typename T::column_t>(out, index++)), ... ); // columns names and separators
-                add(out, ") VALUES (");
+                add(out, ") VALUES ("_s);
                 index = 0;
                 ((accumulate_args<typename T::column_t>(out, index++)), ... ); // columns names and separators
-                add(out, ");");
+                add(out, ");"_s);
             }
 
             static constexpr std::size_t size()
@@ -738,16 +778,32 @@ namespace sql
             static constexpr void accumulate_constraint( F &out )
             {
                 using flags_t = typename T::flags_t;
-                if constexpr (flags_t::template is<pk>())
+
+                flags_t::template call_if<pk>([&out]( const auto )
                 {
                     using table_t = typename T::table_t;
-                    add(out, ", constraint pk_");
+                    add(out, ", CONSTRAINT PK_"_s);
                     add(out, typename table_t::name_t());
-                    add(out, " PRIMARY KEY");
-                    add(out, " (");
+                    add(out, " PRIMARY KEY"_s);
+                    add(out, " ("_s);
                     add(out, typename T::name_t());
-                    add(out, ")");
-                }
+                    add(out, ")"_s);
+                });
+
+                flags_t::template call_if<fk<>>([&out]( const auto fk )
+                {
+                    using fk_t = decltype(fk);
+                    using fk_column_t = typename fk_t::column_t;
+                    using fk_table_t = typename fk_column_t::table_t;
+
+                    add(out, ", FOREIGN KEY ("_s);
+                    add(out, typename T::name_t());
+                    add(out, ") REFERENCES "_s);
+                    add(out, typename fk_table_t::name_t());
+                    add(out, "("_s);
+                    add(out, typename fk_column_t::name_t());
+                    add(out, ")"_s);
+                });
             }
 
             template<typename T, typename F >
@@ -755,15 +811,15 @@ namespace sql
             {
                 if constexpr (std::is_same_v<std::string, T>)
                 {
-                    add(out, " TEXT");
+                    add(out, " TEXT"_s);
                 }
                 else if constexpr (std::is_same_v<std::string_view, T>)
                 {
-                    add(out, " TEXT");
+                    add(out, " TEXT"_s);
                 }
                 else if constexpr (std::is_same_v<std::ptrdiff_t, T>)
                 {
-                    add(out, " INTEGER");
+                    add(out, " INTEGER"_s);
                 }
             }
 
@@ -774,28 +830,28 @@ namespace sql
 
                 if (index > 0)
                 {
-                    add(out, ",");
+                    add(out, ","_s);
                 }
 
                 add(out, typename T::name_t());
                 accumulate_type<typename T::type_t>(out);
                 if constexpr (flags_t::template is<not_null>())
                 {
-                    add(out, " NOT NULL");
+                    add(out, " NOT NULL"_s);
                 }
             }
 
             template<typename F>
             static constexpr void accumulate( F &out )
             {
-                add(out, "CREATE TABLE ");
+                add(out, "CREATE TABLE "_s);
                 add(out, typename Table::name_t());
-                add(out, "(");
+                add(out, "("_s);
                 std::size_t index = 0;
                 (accumulate_columns<COLUMNS>(out, index++), ... );
                 (accumulate_constraint<COLUMNS>(out), ... );
-                add(out, ")");
-                add(out, ";");
+                add(out, ")"_s);
+                add(out, ";"_s);
             }
 
             static constexpr std::size_t size()

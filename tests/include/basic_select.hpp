@@ -34,7 +34,23 @@ public:
     }
 };
 
+namespace
+{
+    template<typename T, typename H>
+    constexpr bool is_same()
+    {
+        static_assert(std::is_same<T, H>::value, "required same types");
+        return true;
+    }
 
+    template<typename T, typename H>
+    constexpr bool validate_column_type( T, H )
+    {
+        using expected_type_t = std::remove_reference_t<typename T::type_t>;
+        using found_type_t = std::remove_reference_t<H>;
+        return is_same<expected_type_t, found_type_t>();
+    }
+}
 
 TEST_CASE_METHOD(Fixture, "Select basic", "[select]")
 {
@@ -46,11 +62,8 @@ TEST_CASE_METHOD(Fixture, "Select basic", "[select]")
         REQUIRE( it != std::end(rows) );
     }
 
-    SECTION( "check item type is expected" ) {
-        using expected_type_t = typename decltype(database::tables::users::age)::type_t;
-        using found_type_t = decltype(std::get<0>(*it));
-        static_assert(std::is_same_v<expected_type_t, found_type_t>, "");
-        REQUIRE( std::is_same_v<expected_type_t, found_type_t> );
+    SECTION( "check result type is expected" ) {
+        REQUIRE( validate_column_type(database::tables::users::age, std::get<0>(*it)) );
     }
 
     SECTION( "item is expected" ) {

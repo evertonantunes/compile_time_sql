@@ -1,8 +1,6 @@
 #include "api.hpp"
 #include "sqlite_factory.hpp"
-
 #include <iostream>
-
 
 namespace database
 {
@@ -22,10 +20,10 @@ namespace database
 
         struct users : public Table<decltype("users"_s)>
         {
-            static constexpr Column<users, decltype("id"_s)         , std::ptrdiff_t, Flags<pk, not_null>> id          = {};
-            static constexpr Column<users, decltype("first_name"_s) , std::ptrdiff_t, Flags<not_null>> first_name  = {};
-            static constexpr Column<users, decltype("second_name"_s), std::ptrdiff_t, Flags<not_null>> second_name = {};
-            static constexpr Column<users, decltype("age"_s)        , std::ptrdiff_t, Flags<not_null>    > age         = {};
+            static constexpr Column<users, decltype("id"_s)         , std::ptrdiff_t, Flags<pk, not_null>>                        id          = {};
+            static constexpr Column<users, decltype("first_name"_s) , std::ptrdiff_t, Flags<fk<decltype(strings::id)>, not_null>> first_name  = {};
+            static constexpr Column<users, decltype("second_name"_s), std::ptrdiff_t, Flags<fk<decltype(strings::id)>, not_null>> second_name = {};
+            static constexpr Column<users, decltype("age"_s)        , std::ptrdiff_t, Flags<not_null>>                            age         = {};
 
             using columns = std::tuple<decltype(id), decltype(first_name), decltype(second_name), decltype(age)>; // future introspection
         };
@@ -55,6 +53,8 @@ int main()
     database::create_table<database::tables::strings>();
     database::create_table<database::tables::users>();
 
+    database::factory_t::instance()->execute("PRAGMA foreign_keys = ON;");
+
     using strings_t = database::tables::strings;
     using users_t = database::tables::users;
 
@@ -76,23 +76,23 @@ int main()
                                     , users_t::age = 67l );
 
 
-    using Select_t = decltype(database::select(   users_t::id
-                                                , f_name::as(strings_t::text)
-                                                , s_name::as(strings_t::text)
-                                                , users_t::age)
-                                            .from<users_t>()
-                                            .left_join<f_name>(f_name::as(strings_t::id) == users_t::first_name)
-                                            .left_join<s_name>(s_name::as(strings_t::id) == users_t::second_name));
+    using my_select_t = decltype(database::select(   users_t::id
+                                                   , f_name::as(strings_t::text)
+                                                   , s_name::as(strings_t::text)
+                                                   , users_t::age)
+        .from<users_t>()
+        .left_join<f_name>(f_name::as(strings_t::id) == users_t::first_name)
+        .left_join<s_name>(s_name::as(strings_t::id) == users_t::second_name));
 
-    for ( auto [id, first_name, second_name, age] : Select_t().where(users_t::age == 39l) )
+    for ( const auto [id, first_name, second_name, age] : my_select_t().where(users_t::age == 39l || users_t::age > 70l))
     {
         std::cout << "id: " << id << " first_name: " << first_name << " second_name: " << second_name << " age: " << age << std::endl;
     }
 
-    for ( auto [id, first_name, second_name, age] : database::select(  users_t::id
-                                                                       , f_name::as(strings_t::text)
-                                                                       , s_name::as(strings_t::text)
-                                                                       , users_t::age)
+    for ( const auto [id, first_name, second_name, age] : database::select(  users_t::id
+                                                                           , f_name::as(strings_t::text)
+                                                                           , s_name::as(strings_t::text)
+                                                                           , users_t::age)
           .from<users_t>()
           .left_join<f_name>(f_name::as(strings_t::id) == users_t::first_name)
           .left_join<s_name>(s_name::as(strings_t::id) == users_t::second_name) )
