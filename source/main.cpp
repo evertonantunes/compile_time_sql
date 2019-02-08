@@ -1,6 +1,6 @@
 #include "api.hpp"
 #include "sqlite_factory.hpp"
-#include <iostream>
+//#include <iostream>
 
 namespace database
 {
@@ -50,10 +50,10 @@ namespace database
 
 int main()
 {
-    database::create_table<database::tables::strings>();
-    database::create_table<database::tables::users>();
+//    database::create_table<database::tables::strings>();
+//    database::create_table<database::tables::users>();
 
-    database::factory_t::instance()->execute("PRAGMA foreign_keys = ON;");
+//    database::factory_t::instance()->execute("PRAGMA foreign_keys = ON;");
 
     using strings_t = database::tables::strings;
     using users_t = database::tables::users;
@@ -63,17 +63,17 @@ int main()
     using f_name = alias<strings_t, decltype("f_name"_s)>;
     using s_name = alias<strings_t, decltype("s_name"_s)>;
 
-    database::insert_into<users_t>(   users_t::first_name = database::insert_into<strings_t>(strings_t::text = "Blaise")
-                                    , users_t::second_name = database::insert_into<strings_t>(strings_t::text = "Pascal")
-                                    , users_t::age = 39l );
+//    database::insert_into<users_t>(   users_t::first_name = database::insert_into<strings_t>(strings_t::text = "Blaise")
+//                                    , users_t::second_name = database::insert_into<strings_t>(strings_t::text = "Pascal")
+//                                    , users_t::age = 39l );
 
-    database::insert_into<users_t>(   users_t::first_name = database::insert_into<strings_t>(strings_t::text = "Leonhard")
-                                    , users_t::second_name = database::insert_into<strings_t>(strings_t::text = "Euler")
-                                    , users_t::age = 76l );
+//    database::insert_into<users_t>(   users_t::first_name = database::insert_into<strings_t>(strings_t::text = "Leonhard")
+//                                    , users_t::second_name = database::insert_into<strings_t>(strings_t::text = "Euler")
+//                                    , users_t::age = 76l );
 
-    database::insert_into<users_t>(   users_t::first_name = database::insert_into<strings_t>(strings_t::text = "Robert")
-                                    , users_t::second_name = database::insert_into<strings_t>(strings_t::text = "Hooke")
-                                    , users_t::age = 67l );
+//    database::insert_into<users_t>(   users_t::first_name = database::insert_into<strings_t>(strings_t::text = "Robert")
+//                                    , users_t::second_name = database::insert_into<strings_t>(strings_t::text = "Hooke")
+//                                    , users_t::age = 67l );
 
 
     using my_select_t = decltype(database::select(   users_t::id
@@ -86,7 +86,7 @@ int main()
 
     for ( const auto [id, first_name, second_name, age] : my_select_t().where(users_t::age == 39l || users_t::age > 70l))
     {
-        std::cout << "id: " << id << " first_name: " << first_name << " second_name: " << second_name << " age: " << age << std::endl;
+       // std::cout << "id: " << id << " first_name: " << first_name << " second_name: " << second_name << " age: " << age << std::endl;
     }
 
     for ( const auto [id, first_name, second_name, age] : database::select(  users_t::id
@@ -97,7 +97,7 @@ int main()
           .left_join<f_name>(f_name::as(strings_t::id) == users_t::first_name)
           .left_join<s_name>(s_name::as(strings_t::id) == users_t::second_name) )
     {
-        std::cout << "id: " << id << " first_name: " << first_name << " second_name: " << second_name << " age: " << age << std::endl;
+    //    std::cout << "id: " << id << " first_name: " << first_name << " second_name: " << second_name << " age: " << age << std::endl;
     }
 
     return 0;

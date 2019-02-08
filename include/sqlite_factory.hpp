@@ -111,7 +111,7 @@ namespace database
         struct Context
         {
             sqlite3_stmt *m_stmt;
-            std::string m_sql;
+            const char *m_sql;
             int m_error_code = SQLITE_DONE;
 
             Context( )
@@ -119,14 +119,14 @@ namespace database
                 , m_error_code(SQLITE_DONE)
             { }
 
-            Context( sqlite3 *connection, std::string &&sql )
+            Context( sqlite3 *connection, const char *sql, const std::size_t size )
                 : m_stmt(nullptr)
-                , m_sql(std::move(sql))
+                , m_sql(sql)
             {
-                m_error_code = sqlite3_prepare_v2(connection, m_sql.c_str(), m_sql.size(), &m_stmt, NULL);
+                m_error_code = sqlite3_prepare_v2(connection, sql, size, &m_stmt, NULL);
                 if (m_error_code != SQLITE_OK)
                 {
-                    throw SQLiteError(connection, m_error_code, m_sql);
+               //     throw SQLiteError(connection, m_error_code, m_sql);
                 }
             }
 
@@ -156,7 +156,7 @@ namespace database
                 case SQLITE_DONE:
                     return;
                 default:
-                    throw std::runtime_error(sqlite3_errstr(context.m_error_code));
+               //     throw std::runtime_error(sqlite3_errstr(context.m_error_code));
                 break;
             }
         }
@@ -194,12 +194,12 @@ namespace database
                 return &s_instance;
             }
 
-            static void execute( const std::string_view sql )
+            static void execute( const std::string_view &sql )
             {
                 const auto rc = sqlite3_exec(instance()->m_database_connection, sql.data(), nullptr, nullptr, nullptr);
                 if (rc != SQLITE_OK)
                 {
-                    throw std::runtime_error(sqlite3_errstr(rc));
+             //       throw std::runtime_error(sqlite3_errstr(rc));
                 }
             }
 
@@ -209,9 +209,9 @@ namespace database
             }
 
             template<typename T>
-            static context_t make_context( std::string &&sql, T &&data )
+            static context_t make_context( const char *sql, const std::size_t size , T &&data )
             {
-                context_t result(instance()->m_database_connection, std::move(sql));
+                context_t result(instance()->m_database_connection, sql, size);
                 set::bind(result, data);
                 return result;
             }

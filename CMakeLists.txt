@@ -15,11 +15,13 @@ INCLUDE_DIRECTORIES(${INCLUDE_DIR})
 FILE(GLOB_RECURSE SOURCES RELATIVE ${CMAKE_SOURCE_DIR} ${SOURCE_DIR}/*.cpp)
 FILE(GLOB_RECURSE HEADERS RELATIVE ${CMAKE_SOURCE_DIR} ${INCLUDE_DIR}/*.hpp)
 
-ADD_DEFINITIONS(-fsanitize=address)
-ADD_DEFINITIONS(-fno-omit-frame-pointer)
+#ADD_DEFINITIONS(-fsanitize=address)
+#ADD_DEFINITIONS(-fno-omit-frame-pointer)
+ADD_DEFINITIONS(-O3)
+SET(CMAKE_BUILD_TYPE "Release")
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
-target_link_libraries(${PROJECT_NAME} -lasan)
+target_link_libraries(${PROJECT_NAME} )#-lasan
 conan_target_link_libraries(${PROJECT_NAME})
 
 enable_testing()

@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <type_traits>
 
+//#include <iostream>
+
 namespace sql
 {
     using string_t = std::string_view;
@@ -10,9 +12,41 @@ namespace sql
     template<char ... String>
     struct StaticArray
     {
-        static const constexpr char data[] = {String ... };
-        static const constexpr std::size_t size = sizeof ... (String);
+        static const constexpr char m_data[] = {String ... };
+        static const constexpr std::size_t m_size = sizeof ... (String);
+
+        template<char ... String2>
+        constexpr auto operator+( const StaticArray<String2...> & ) const
+        {
+            return StaticArray<String ..., String2...>();
+        }
+
+        std::string_view view() const
+        {
+            return std::string_view(&m_data[0], m_size);
+        }
+
+        std::string str() const
+        {
+            return std::string(&m_data[0], m_size);
+        }
+
+        const char* c_str() const
+        {
+            return &m_data[0];
+        }
+
+        std::size_t size() const
+        {
+            return m_size;
+        }
     };
+
+    template< typename ... T>
+    constexpr auto concatenate( const T &...args )
+    {
+        return ((args) + ...);
+    }
 
     template<char ... String>
     inline void add( std::string::iterator &it, const StaticArray<String...> &str )
@@ -73,6 +107,11 @@ namespace sql
             {
                 add(out, T());
             }
+
+            static constexpr auto to_string( )
+            {
+                return T();
+            }
         };
 
         namespace logical
@@ -103,6 +142,11 @@ namespace sql
                     R::accumulate(out);
                 }
 
+                static constexpr auto to_string( )
+                {
+                    return L::to_string() + OP::to_string() + R::to_string();
+                }
+
                 template< typename T >
                 auto operator &&( T &&other )
                 {
@@ -128,6 +172,11 @@ namespace sql
                     L::accumulate(out);
                     OP::accumulate(out);
                     R::accumulate(out);
+                }
+
+                static constexpr auto to_string( )
+                {
+                    return L::to_string() + OP::to_string() + R::to_string();
                 }
 
                 template< typename T >
@@ -189,6 +238,11 @@ namespace sql
                     add(out, "?"_s);
                 }
 
+                static constexpr auto to_string( )
+                {
+                    return T::to_string() + OP::to_string() + "?"_s;
+                }
+
                 auto data() const
                 {
                     return std::make_tuple(m_data);
@@ -238,6 +292,11 @@ namespace sql
                     accumulate_column<T>(out);
                     OP::accumulate(out);
                     accumulate_column<H>(out);
+                }
+
+                static constexpr auto to_string( )
+                {
+                    return T::to_string() + OP::to_string() + H::to_string();
                 }
 
                 template< typename OTHER >
@@ -339,6 +398,18 @@ namespace sql
         static auto alias()
         {
             return Column<T, name_t, type_t, flags_t>();
+        }
+
+        static constexpr auto to_string( )
+        {
+            if constexpr (is_alias(table_t()))
+            {
+                return typename table_t::alias_t() + "."_s + name_t();
+            }
+            else
+            {
+                return typename table_t::name_t() + "."_s + name_t();
+            }
         }
 
         template< typename OP, typename VALUE >
@@ -502,34 +573,44 @@ namespace sql
                 : m_where(std::move(where))
             {}
 
-            template<typename F>
-            static constexpr void accumulate( F &out )
+//            template<typename F>
+//            static constexpr void accumulate( F &out )
+//            {
+//                T::accumulate(out);
+//                add(out, "WHERE "_s);
+//                WHERE::accumulate(out);
+//                add(out, ";"_s);
+//            }
+
+            static constexpr auto to_string( )
             {
-                T::accumulate(out);
-                add(out, "WHERE "_s);
-                WHERE::accumulate(out);
-                add(out, ";"_s);
+                return T::to_string() + "WHERE "_s + WHERE::to_string() + ";"_s;
             }
 
-            static constexpr std::size_t size()
-            {
-                std::size_t size = 0;
-                SelectFromWHERE::accumulate(size);
-                return size;
-            }
+//            static constexpr std::size_t size()
+//            {
+//                std::size_t size = 0;
+//                SelectFromWHERE::accumulate(size);
+//                return size;
+//            }
 
-            auto get_sql() const
-            {
-                const constexpr std::size_t buffer_size = SelectFromWHERE::size();
-                std::string text(buffer_size, '.');
-                auto it = std::begin(text);
-                SelectFromWHERE::accumulate(it);
-                return text;
-            }
+//            auto get_sql() const
+//            {
+//                const constexpr std::size_t buffer_size = SelectFromWHERE::size();
+//                std::string text(buffer_size, '.');
+//                auto it = std::begin(text);
+//                SelectFromWHERE::accumulate(it);
+
+//                const constexpr auto x = SelectFromWHERE::to_string();
+//                std::cout << "sql: " << &x.data[0] << std::endl;
+
+//                return text;
+//            }
 
             auto create_statement() const
             {
-                return ConnectionFactory::make_context(get_sql(), m_where.data());
+                static const constexpr auto text = to_string();
+                return ConnectionFactory::make_context(text.c_str(), text.size(), m_where.data());
             }
 
             iterator_t begin() const
@@ -546,23 +627,35 @@ namespace sql
         template<typename StringType, typename Table, typename EXP>
         struct Join
         {
-            template<typename OUT>
-            static constexpr void accumulate( OUT &out )
+//            template<typename OUT>
+//            static constexpr void accumulate( OUT &out )
+//            {
+//                add(out, StringType());
+//                if constexpr (is_alias(Table()))
+//                {
+//                    add(out, typename Table::name_t());
+//                    add(out, " as "_s);
+//                    add(out, typename Table::alias_t());
+//                }
+//                else
+//                {
+//                    add(out, typename Table::table_t());
+//                }
+//                add(out, " ON "_s);
+//                EXP::accumulate(out);
+//                add(out, " "_s);
+//            }
+
+            static constexpr auto to_string( )
             {
-                add(out, StringType());
                 if constexpr (is_alias(Table()))
                 {
-                    add(out, typename Table::name_t());
-                    add(out, " as "_s);
-                    add(out, typename Table::alias_t());
+                    return StringType() + typename Table::name_t() + " as "_s + typename Table::alias_t() + " ON "_s + EXP::to_string() + " "_s;
                 }
                 else
                 {
-                    add(out, typename Table::table_t());
+                    return StringType() + typename Table::name_t() + " ON "_s + EXP::to_string() + " "_s;
                 }
-                add(out, " ON "_s);
-                EXP::accumulate(out);
-                add(out, " "_s);
             }
         };
 
@@ -588,34 +681,40 @@ namespace sql
                 return SelectFrom<SELECT, FROM, JOIN..., Join<join_type_t, Table, Exp>>();
             }
 
-            template<typename OUT>
-            static constexpr void accumulate( OUT &out )
+//            template<typename OUT>
+//            static constexpr void accumulate( OUT &out )
+//            {
+//                SELECT::accumulate(out);
+//                FROM::accumulate(out);
+//                (JOIN::accumulate(out), ... );
+//            }
+
+            static constexpr auto to_string( )
             {
-                SELECT::accumulate(out);
-                FROM::accumulate(out);
-                (JOIN::accumulate(out), ... );
+                return SELECT::to_string() + FROM::to_string() + (JOIN::to_string() + ... + ""_s);
             }
 
-            static constexpr std::size_t size()
-            {
-                std::size_t size = 0;
-                SelectFrom::accumulate(size);
-                return size;
-            }
+//            static constexpr std::size_t size()
+//            {
+//                std::size_t size = 0;
+//                SelectFrom::accumulate(size);
+//                return size;
+//            }
 
-            auto get_sql() const
-            {
-                const constexpr std::size_t buffer_size = SelectFrom::size() + 1;
-                std::string text(buffer_size, '.');
-                auto it = std::begin(text);
-                SelectFrom::accumulate(it);
-                *it = ';';                
-                return text;
-            }
+//            auto get_sql() const
+//            {
+//                const constexpr std::size_t buffer_size = SelectFrom::size() + 1;
+//                std::string text(buffer_size, '.');
+//                auto it = std::begin(text);
+//                SelectFrom::accumulate(it);
+//                *it = ';';
+//                return text;
+//            }
 
             auto create_statement() const
             {
-                return ConnectionFactory::make_context(get_sql(), std::tuple<>{});
+                static const constexpr auto text = to_string();
+                return ConnectionFactory::make_context(text.c_str(), text.size(), std::tuple<>{});
             }
 
             iterator_t begin() const
@@ -632,21 +731,33 @@ namespace sql
         template<typename T>
         struct From
         {
-            template<typename F>
-            static constexpr void accumulate( F &out )
+//            template<typename F>
+//            static constexpr void accumulate( F &out )
+//            {
+//                add(out, "FROM "_s);
+//                if constexpr (is_alias(T()))
+//                {
+//                    add(out, typename T::name_t());
+//                    add(out, " as "_s);
+//                    add(out, typename T::alias_t());
+//                }
+//                else
+//                {
+//                    add(out, typename T::name_t());
+//                }
+//                add(out, " "_s);
+//            }
+
+            static constexpr auto to_string( )
             {
-                add(out, "FROM "_s);
                 if constexpr (is_alias(T()))
                 {
-                    add(out, typename T::name_t());
-                    add(out, " as "_s);
-                    add(out, typename T::alias_t());
+                    return "FROM "_s + typename T::name_t() + " as "_s + typename T::alias_t() + " "_s;
                 }
                 else
                 {
-                    add(out, typename T::name_t());
+                    return "FROM "_s + typename T::name_t() + " "_s;
                 }
-                add(out, " "_s);
             }
         };
 
@@ -656,37 +767,42 @@ namespace sql
             using ConnectionFactory = F;
             typedef std::tuple< typename T::type_t ... > row_t;
 
-            template<typename COLUMN, typename OUT >
-            static constexpr void accumulate_columns( OUT &out, const std::size_t index )
-            {
-                using flags_t = typename COLUMN::flags_t;
-                using table_t = typename COLUMN::table_t;
+//            template<typename COLUMN, typename OUT >
+//            static constexpr void accumulate_columns( OUT &out, const std::size_t index )
+//            {
+//                using flags_t = typename COLUMN::flags_t;
+//                using table_t = typename COLUMN::table_t;
 
-                if (index > 0)
-                {
-                    add(out, ", "_s);
-                }
-                if constexpr (is_alias(table_t()))
-                {
-                    add(out, typename table_t::alias_t());
-                    add(out, "."_s);
-                    add(out, typename COLUMN::name_t());
-                }
-                else
-                {
-                    add(out, typename table_t::name_t());
-                    add(out, "."_s);
-                    add(out, typename COLUMN::name_t());
-                }
-            }
+//                if (index > 0)
+//                {
+//                    add(out, ", "_s);
+//                }
+//                if constexpr (is_alias(table_t()))
+//                {
+//                    add(out, typename table_t::alias_t());
+//                    add(out, "."_s);
+//                    add(out, typename COLUMN::name_t());
+//                }
+//                else
+//                {
+//                    add(out, typename table_t::name_t());
+//                    add(out, "."_s);
+//                    add(out, typename COLUMN::name_t());
+//                }
+//            }
 
-            template<typename OUT>
-            static constexpr void accumulate( OUT &out )
+//            template<typename OUT>
+//            static constexpr void accumulate( OUT &out )
+//            {
+//                add(out, "SELECT "_s);
+//                std::size_t index = 0;
+//                (accumulate_columns<T>(out, index++), ... ); // columns names and separators
+//                add(out, " "_s);
+//            }
+
+            static constexpr auto to_string( )
             {
-                add(out, "SELECT "_s);
-                std::size_t index = 0;
-                (accumulate_columns<T>(out, index++), ... ); // columns names and separators
-                add(out, " "_s);
+                return "SELECT "_s + ((T::to_string() + ", "_s) + ... + " 0 as ignored "_s) + " "_s;
             }
 
             template<typename H>
@@ -744,6 +860,11 @@ namespace sql
                 index = 0;
                 ((accumulate_args<typename T::column_t>(out, index++)), ... ); // columns names and separators
                 add(out, ");"_s);
+            }
+
+            static constexpr auto to_string( )
+            {
+                return "#"_s;
             }
 
             static constexpr std::size_t size()
