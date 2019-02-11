@@ -12,10 +12,10 @@ namespace database
         class SQLiteError : public std::exception
         {
             sqlite3 *m_connection;
-            std::string m_sql;
+            std::string_view m_sql;
             const int m_code;
         public:
-            SQLiteError( sqlite3 *connection, const int code, std::string &sql )
+            SQLiteError( sqlite3 *connection, const int code, const std::string_view sql )
                 : m_connection(connection)
                 , m_code(code)
                 , m_sql(sql)
@@ -126,7 +126,7 @@ namespace database
                 m_error_code = sqlite3_prepare_v2(connection, sql, size, &m_stmt, NULL);
                 if (m_error_code != SQLITE_OK)
                 {
-               //     throw SQLiteError(connection, m_error_code, m_sql);
+                    throw SQLiteError(connection, m_error_code, std::string_view(m_sql, size));
                 }
             }
 
@@ -156,7 +156,7 @@ namespace database
                 case SQLITE_DONE:
                     return;
                 default:
-               //     throw std::runtime_error(sqlite3_errstr(context.m_error_code));
+                    throw std::runtime_error(sqlite3_errstr(context.m_error_code));
                 break;
             }
         }
@@ -199,7 +199,7 @@ namespace database
                 const auto rc = sqlite3_exec(instance()->m_database_connection, sql.data(), nullptr, nullptr, nullptr);
                 if (rc != SQLITE_OK)
                 {
-             //       throw std::runtime_error(sqlite3_errstr(rc));
+                    throw std::runtime_error(sqlite3_errstr(rc));
                 }
             }
 
