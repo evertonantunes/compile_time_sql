@@ -3,12 +3,8 @@
 #include <algorithm>
 #include <type_traits>
 
-#include <iostream>
-
 namespace sql
 {
-    using string_t = std::string_view;
-
     template<char ... String>
     struct StaticArray
     {
@@ -527,7 +523,6 @@ namespace sql
             auto create_statement() const
             {
                 static const constexpr auto text = to_string();
-                std::cout << "SQL: " << text.view() << std::endl;
                 return ConnectionFactory::make_context(text.c_str(), text.size(), m_where.data());
             }
 
@@ -662,7 +657,6 @@ namespace sql
             auto run() const
             {                
                 const constexpr auto text = to_string();
-                std::cout << "sql: " << text.view() << std::endl;
                 auto context = FACTORY::make_context(text.c_str(), text.size(), std::move(m_data));
                 std::tuple<> tp;
                 next(context, tp);
@@ -720,10 +714,6 @@ namespace sql
                 {
                     return " INTEGER"_s;
                 }
-                else
-                {
-                    return " UNKNOW"_s;
-                }
             }
 
             template<typename T>
@@ -732,10 +722,6 @@ namespace sql
                 if constexpr (T::template is<not_null>())
                 {
                     return " NOT NULL"_s;
-                }
-                else
-                {
-                    return ""_s;
                 }
             }
 
@@ -761,7 +747,6 @@ namespace sql
             static void run()
             {
                 const constexpr auto text = to_string();
-                std::cout << "sql: " << text.view() << std::endl;
                 Factory::instance()->execute(text.str());
             }
         };
