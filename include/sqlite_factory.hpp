@@ -199,7 +199,7 @@ namespace database
                 const auto rc = sqlite3_exec(instance()->m_database_connection, sql.data(), nullptr, nullptr, nullptr);
                 if (rc != SQLITE_OK)
                 {
-                    throw std::runtime_error(sqlite3_errstr(rc));
+                    throw SQLiteError(instance()->m_database_connection, rc, sql);
                 }
             }
 
