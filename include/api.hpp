@@ -502,6 +502,12 @@ namespace sql
             }
         };
 
+        template<typename T>
+        struct TUnion
+        {
+            TUnion
+        };
+
         template<typename T, typename WHERE>
         struct SelectFromWHERE
         {
@@ -514,6 +520,11 @@ namespace sql
             SelectFromWHERE( WHERE &&where )
                 : m_where(std::move(where))
             {}
+
+            constexpr auto Union()
+            {
+                return TUnion<SelectFromWHERE<T, WHERE>>(std::move(m_where));
+            }
 
             static constexpr auto to_string( )
             {
@@ -713,6 +724,18 @@ namespace sql
                 else if constexpr (std::is_same_v<std::ptrdiff_t, T>)
                 {
                     return " INTEGER"_s;
+                }
+                else if constexpr (std::is_same_v<unsigned short, T>)
+                {
+                    return " INTEGER"_s;
+                }
+                else if constexpr (std::is_same_v<signed short, T>)
+                {
+                    return " INTEGER"_s;
+                }
+                else if constexpr (std::is_same_v<double, T>)
+                {
+                    return " REAL"_s;
                 }
             }
 

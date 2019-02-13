@@ -56,6 +56,18 @@ namespace database
                 {
                     rc = sqlite3_bind_int64(context.m_stmt, index, value);
                 }
+                else if constexpr (std::is_same_v<unsigned short, T>)
+                {
+                    rc = sqlite3_bind_int64(context.m_stmt, index, static_cast<std::ptrdiff_t>(value));
+                }
+                else if constexpr (std::is_same_v<signed short, T>)
+                {
+                    rc = sqlite3_bind_int64(context.m_stmt, index, static_cast<std::ptrdiff_t>(value));
+                }
+                else if constexpr (std::is_same_v<double, T>)
+                {
+                    rc = sqlite3_bind_double(context.m_stmt, index, value);
+                }
                 assert(rc == SQLITE_OK);
             }
 
@@ -91,6 +103,18 @@ namespace database
                 else if constexpr (std::is_same_v<std::ptrdiff_t, T>)
                 {
                     value = sqlite3_column_int64(context.m_stmt, index);
+                }
+                else if constexpr (std::is_same_v<unsigned short, T>)
+                {
+                    value = static_cast<unsigned short>(sqlite3_column_int64(context.m_stmt, index));
+                }
+                else if constexpr (std::is_same_v<signed short, T>)
+                {
+                    value = static_cast<signed short>(sqlite3_column_int64(context.m_stmt, index));
+                }
+                else if constexpr (std::is_same_v<double, T>)
+                {
+                    value = sqlite3_column_double(context.m_stmt, index);
                 }
                 assert(rc == SQLITE_OK);
             }
@@ -182,10 +206,10 @@ namespace database
                 sqlite3_close(m_database_connection);
             }
 
-            void reset()
+            void reset( const std::string config = ":memory:" )
             {
                 sqlite3_close(m_database_connection);
-                sqlite3_open(":memory:", &m_database_connection);
+                sqlite3_open(config.c_str(), &m_database_connection);
             }
 
             static SQLite* instance()

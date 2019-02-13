@@ -1,6 +1,9 @@
 #include "api.hpp"
 #include "sqlite_factory.hpp"
+#include <nlohmann/json.hpp>
 #include <iostream>
+#include <fstream>
+#include <sstream>
 
 namespace database
 {
@@ -18,18 +21,10 @@ namespace database
             using columns = std::tuple<decltype(id), decltype(date)>; // future introspection
         };
 
-        struct Tag : public Table<decltype("T_tag"_s)>
-        {
-            static constexpr Column<Tag, decltype("id"_s)   , std::ptrdiff_t  , Flags<pk, not_null>> id    = {};
-            static constexpr Column<Tag, decltype("value"_s), std::ptrdiff_t  , Flags<not_null>    > value = {};
-
-            using columns = std::tuple<decltype(id), decltype(value)>; // future introspection
-        };
-
         struct AE : public Table<decltype("T_AE"_s)>
         {
             static constexpr Column<AE, decltype("id"_s)     , std::ptrdiff_t, Flags<pk, not_null>                       > id      = {};
-            static constexpr Column<AE, decltype("tag"_s)    , std::ptrdiff_t, Flags<fk<decltype(Tag::id)>, not_null>    > tag     = {};
+            static constexpr Column<AE, decltype("tag"_s)    , std::ptrdiff_t, Flags<not_null>                           > tag     = {};
             static constexpr Column<AE, decltype("dataset"_s), std::ptrdiff_t, Flags<fk<decltype(DataSet::id)>, not_null>> dataset = {};
             static constexpr Column<AE, decltype("value"_s)  , std::ptrdiff_t, Flags<not_null>                           > value   = {};
 
@@ -38,10 +33,10 @@ namespace database
 
         struct AS: public Table<decltype("T_AS"_s)>
         {
-            static constexpr Column<AS, decltype("id"_s)     , std::ptrdiff_t, Flags<pk, not_null>> id    = {};
-            static constexpr Column<AS, decltype("tag"_s)    , std::ptrdiff_t, Flags<fk<decltype(Tag::id)>, not_null>    > tag     = {};
-            static constexpr Column<AS, decltype("dataset"_s), std::ptrdiff_t, Flags<fk<decltype(DataSet::id)>, not_null>> dataset = {};
-            static constexpr Column<AS, decltype("value"_s)  , std::ptrdiff_t, Flags<not_null>    > value = {};
+            static constexpr Column<AS, decltype("id"_s)     , std::ptrdiff_t   , Flags<pk, not_null>                       > id        = {};
+            static constexpr Column<AS, decltype("tag"_s)    , std::ptrdiff_t   , Flags<not_null>    > tag       = {};
+            static constexpr Column<AS, decltype("dataset"_s), std::ptrdiff_t   , Flags<fk<decltype(DataSet::id)>, not_null>> dataset   = {};
+            static constexpr Column<AS, decltype("value"_s)  , std::string_view , Flags<not_null>                           > value     = {};
 
             using columns = std::tuple<decltype(id), decltype(tag), decltype(dataset), decltype(value)>; // future introspection
         };
@@ -49,7 +44,7 @@ namespace database
         struct AT: public Table<decltype("T_AT"_s)>
         {
             static constexpr Column<AT, decltype("id"_s)   , std::ptrdiff_t, Flags<pk, not_null>> id    = {};
-            static constexpr Column<AT, decltype("tag"_s)    , std::ptrdiff_t, Flags<fk<decltype(Tag::id)>, not_null>    > tag     = {};
+            static constexpr Column<AT, decltype("tag"_s)    , std::ptrdiff_t, Flags<not_null>    > tag     = {};
             static constexpr Column<AT, decltype("dataset"_s), std::ptrdiff_t, Flags<fk<decltype(DataSet::id)>, not_null>> dataset = {};
             static constexpr Column<AT, decltype("value"_s), std::ptrdiff_t, Flags<not_null>    > value = {};
 
@@ -59,7 +54,7 @@ namespace database
         struct OB: public Table<decltype("T_OB"_s)>
         {
             static constexpr Column<OB, decltype("id"_s)     , std::ptrdiff_t, Flags<pk, not_null>> id    = {};
-            static constexpr Column<OB, decltype("tag"_s)    , std::ptrdiff_t, Flags<fk<decltype(Tag::id)>, not_null>    > tag     = {};
+            static constexpr Column<OB, decltype("tag"_s)    , std::ptrdiff_t, Flags<not_null>    > tag     = {};
             static constexpr Column<OB, decltype("dataset"_s), std::ptrdiff_t, Flags<fk<decltype(DataSet::id)>, not_null>> dataset = {};
             static constexpr Column<OB, decltype("value"_s)  , std::ptrdiff_t, Flags<not_null>    > value = {};
 
@@ -68,10 +63,10 @@ namespace database
 
         struct OW: public Table<decltype("T_OW"_s)>
         {
-            static constexpr Column<OW, decltype("id"_s)   , std::ptrdiff_t, Flags<pk, not_null>> id    = {};
-            static constexpr Column<OW, decltype("tag"_s)    , std::ptrdiff_t, Flags<fk<decltype(Tag::id)>, not_null>    > tag     = {};
-            static constexpr Column<OW, decltype("dataset"_s), std::ptrdiff_t, Flags<fk<decltype(DataSet::id)>, not_null>> dataset = {};
-            static constexpr Column<OW, decltype("value"_s), std::ptrdiff_t, Flags<not_null>    > value = {};
+            static constexpr Column<OW, decltype("id"_s)     , std::ptrdiff_t   , Flags<pk, not_null>                       > id        = {};
+            static constexpr Column<OW, decltype("tag"_s)    , std::ptrdiff_t   , Flags<not_null>    > tag       = {};
+            static constexpr Column<OW, decltype("dataset"_s), std::ptrdiff_t   , Flags<fk<decltype(DataSet::id)>, not_null>> dataset   = {};
+            static constexpr Column<OW, decltype("value"_s)  , std::string_view , Flags<not_null>                           > value     = {};
 
             using columns = std::tuple<decltype(id), decltype(tag), decltype(dataset), decltype(value)>; // future introspection
         };
@@ -79,7 +74,7 @@ namespace database
         struct OF: public Table<decltype("T_OF"_s)>
         {
             static constexpr Column<OF, decltype("id"_s)   , std::ptrdiff_t, Flags<pk, not_null>> id    = {};
-            static constexpr Column<OF, decltype("tag"_s)    , std::ptrdiff_t, Flags<fk<decltype(Tag::id)>, not_null>    > tag     = {};
+            static constexpr Column<OF, decltype("tag"_s)    , std::ptrdiff_t, Flags<not_null>    > tag     = {};
             static constexpr Column<OF, decltype("dataset"_s), std::ptrdiff_t, Flags<fk<decltype(DataSet::id)>, not_null>> dataset = {};
             static constexpr Column<OF, decltype("value"_s), std::ptrdiff_t, Flags<not_null>    > value = {};
 
@@ -89,7 +84,7 @@ namespace database
         struct OD: public Table<decltype("T_OD"_s)>
         {
             static constexpr Column<OD, decltype("id"_s)   , std::ptrdiff_t, Flags<pk, not_null>> id    = {};
-            static constexpr Column<OD, decltype("tag"_s)    , std::ptrdiff_t, Flags<fk<decltype(Tag::id)>, not_null>    > tag     = {};
+            static constexpr Column<OD, decltype("tag"_s)    , std::ptrdiff_t, Flags<not_null>    > tag     = {};
             static constexpr Column<OD, decltype("dataset"_s), std::ptrdiff_t, Flags<fk<decltype(DataSet::id)>, not_null>> dataset = {};
             static constexpr Column<OD, decltype("value"_s), std::ptrdiff_t, Flags<not_null>    > value = {};
 
@@ -98,18 +93,19 @@ namespace database
 
         struct SQ: public Table<decltype("T_SQ"_s)>
         {
-            static constexpr Column<SQ, decltype("id"_s)   , std::ptrdiff_t, Flags<pk, not_null>> id    = {};
-            static constexpr Column<SQ, decltype("tag"_s)    , std::ptrdiff_t, Flags<fk<decltype(Tag::id)>, not_null>    > tag     = {};
+            static constexpr Column<SQ, decltype("id"_s)     , std::ptrdiff_t, Flags<pk, not_null>> id    = {};
+            static constexpr Column<SQ, decltype("tag"_s)    , std::ptrdiff_t, Flags<not_null>    > tag     = {};
             static constexpr Column<SQ, decltype("dataset"_s), std::ptrdiff_t, Flags<fk<decltype(DataSet::id)>, not_null>> dataset = {};
-            static constexpr Column<SQ, decltype("value"_s), std::ptrdiff_t, Flags<not_null>    > value = {};
+            static constexpr Column<SQ, decltype("value"_s)  , std::ptrdiff_t, Flags<fk<decltype(DataSet::id)>, not_null>> value = {};
+            static constexpr Column<SQ, decltype("c_index"_s), std::ptrdiff_t, Flags<not_null>                           > index = {};
 
-            using columns = std::tuple<decltype(id), decltype(tag), decltype(dataset), decltype(value)>; // future introspection
+            using columns = std::tuple<decltype(id), decltype(tag), decltype(dataset), decltype(value), decltype(index)>; // future introspection
         };
 
         struct UT: public Table<decltype("T_UT"_s)>
         {
             static constexpr Column<UT, decltype("id"_s)   , std::ptrdiff_t, Flags<pk, not_null>> id    = {};
-            static constexpr Column<UT, decltype("tag"_s)    , std::ptrdiff_t, Flags<fk<decltype(Tag::id)>, not_null>    > tag     = {};
+            static constexpr Column<UT, decltype("tag"_s)    , std::ptrdiff_t, Flags<not_null>    > tag     = {};
             static constexpr Column<UT, decltype("dataset"_s), std::ptrdiff_t, Flags<fk<decltype(DataSet::id)>, not_null>> dataset = {};
             static constexpr Column<UT, decltype("value"_s), std::ptrdiff_t, Flags<not_null>    > value = {};
 
@@ -118,10 +114,10 @@ namespace database
 
         struct UN: public Table<decltype("T_UN"_s)>
         {
-            static constexpr Column<UN, decltype("id"_s)   , std::ptrdiff_t, Flags<pk, not_null>> id    = {};
-            static constexpr Column<UN, decltype("tag"_s)    , std::ptrdiff_t, Flags<fk<decltype(Tag::id)>, not_null>    > tag     = {};
-            static constexpr Column<UN, decltype("dataset"_s), std::ptrdiff_t, Flags<fk<decltype(DataSet::id)>, not_null>> dataset = {};
-            static constexpr Column<UN, decltype("value"_s), std::ptrdiff_t, Flags<not_null>    > value = {};
+            static constexpr Column<UN, decltype("id"_s)        , std::ptrdiff_t    , Flags<pk, not_null>                       > id        = {};
+            static constexpr Column<UN, decltype("tag"_s)       , std::ptrdiff_t    , Flags<not_null>    > tag       = {};
+            static constexpr Column<UN, decltype("dataset"_s)   , std::ptrdiff_t    , Flags<fk<decltype(DataSet::id)>, not_null>> dataset   = {};
+            static constexpr Column<UN, decltype("value"_s)     , std::string_view  , Flags<not_null>                           > value     = {};
 
             using columns = std::tuple<decltype(id), decltype(tag), decltype(dataset), decltype(value)>; // future introspection
         };
@@ -129,7 +125,7 @@ namespace database
         struct UL: public Table<decltype("T_UL"_s)>
         {
             static constexpr Column<UL, decltype("id"_s)   , std::ptrdiff_t, Flags<pk, not_null>> id    = {};
-            static constexpr Column<UL, decltype("tag"_s)    , std::ptrdiff_t, Flags<fk<decltype(Tag::id)>, not_null>    > tag     = {};
+            static constexpr Column<UL, decltype("tag"_s)    , std::ptrdiff_t, Flags<not_null>    > tag     = {};
             static constexpr Column<UL, decltype("dataset"_s), std::ptrdiff_t, Flags<fk<decltype(DataSet::id)>, not_null>> dataset = {};
             static constexpr Column<UL, decltype("value"_s), std::ptrdiff_t, Flags<not_null>    > value = {};
 
@@ -138,20 +134,20 @@ namespace database
 
         struct US: public Table<decltype("T_US"_s)>
         {
-            static constexpr Column<US, decltype("id"_s)   , std::ptrdiff_t, Flags<pk, not_null>> id    = {};
-            static constexpr Column<US, decltype("tag"_s)    , std::ptrdiff_t, Flags<fk<decltype(Tag::id)>, not_null>    > tag     = {};
+            static constexpr Column<US, decltype("id"_s)     , std::ptrdiff_t, Flags<pk, not_null>                       > id      = {};
+            static constexpr Column<US, decltype("tag"_s)    , std::ptrdiff_t, Flags<not_null>    > tag     = {};
             static constexpr Column<US, decltype("dataset"_s), std::ptrdiff_t, Flags<fk<decltype(DataSet::id)>, not_null>> dataset = {};
-            static constexpr Column<US, decltype("value"_s), std::ptrdiff_t, Flags<not_null>    > value = {};
+            static constexpr Column<US, decltype("value"_s)  , unsigned short, Flags<not_null>                           > value   = {};
 
             using columns = std::tuple<decltype(id), decltype(tag), decltype(dataset), decltype(value)>; // future introspection
         };
 
         struct SS: public Table<decltype("T_SS"_s)>
         {
-            static constexpr Column<SS, decltype("id"_s)   , std::ptrdiff_t, Flags<pk, not_null>> id    = {};
-            static constexpr Column<SS, decltype("tag"_s)    , std::ptrdiff_t, Flags<fk<decltype(Tag::id)>, not_null>    > tag     = {};
+            static constexpr Column<SS, decltype("id"_s)     , std::ptrdiff_t, Flags<pk, not_null>                       > id      = {};
+            static constexpr Column<SS, decltype("tag"_s)    , std::ptrdiff_t, Flags<not_null>    > tag     = {};
             static constexpr Column<SS, decltype("dataset"_s), std::ptrdiff_t, Flags<fk<decltype(DataSet::id)>, not_null>> dataset = {};
-            static constexpr Column<SS, decltype("value"_s), std::ptrdiff_t, Flags<not_null>    > value = {};
+            static constexpr Column<SS, decltype("value"_s)  , signed short  , Flags<not_null>                           > value   = {};
 
             using columns = std::tuple<decltype(id), decltype(tag), decltype(dataset), decltype(value)>; // future introspection
         };
@@ -159,7 +155,7 @@ namespace database
         struct SL: public Table<decltype("T_SL"_s)>
         {
             static constexpr Column<SL, decltype("id"_s)   , std::ptrdiff_t, Flags<pk, not_null>> id    = {};
-            static constexpr Column<SL, decltype("tag"_s)    , std::ptrdiff_t, Flags<fk<decltype(Tag::id)>, not_null>    > tag     = {};
+            static constexpr Column<SL, decltype("tag"_s)    , std::ptrdiff_t, Flags<not_null>    > tag     = {};
             static constexpr Column<SL, decltype("dataset"_s), std::ptrdiff_t, Flags<fk<decltype(DataSet::id)>, not_null>> dataset = {};
             static constexpr Column<SL, decltype("value"_s), std::ptrdiff_t, Flags<not_null>    > value = {};
 
@@ -168,10 +164,10 @@ namespace database
 
         struct FD: public Table<decltype("T_FD"_s)>
         {
-            static constexpr Column<FD, decltype("id"_s)   , std::ptrdiff_t, Flags<pk, not_null>> id    = {};
-            static constexpr Column<FD, decltype("tag"_s)    , std::ptrdiff_t, Flags<fk<decltype(Tag::id)>, not_null>    > tag     = {};
+            static constexpr Column<FD, decltype("id"_s)     , std::ptrdiff_t, Flags<pk, not_null>> id    = {};
+            static constexpr Column<FD, decltype("tag"_s)    , std::ptrdiff_t, Flags<not_null>    > tag     = {};
             static constexpr Column<FD, decltype("dataset"_s), std::ptrdiff_t, Flags<fk<decltype(DataSet::id)>, not_null>> dataset = {};
-            static constexpr Column<FD, decltype("value"_s), std::ptrdiff_t, Flags<not_null>    > value = {};
+            static constexpr Column<FD, decltype("value"_s)  , double        , Flags<not_null>    > value = {};
 
             using columns = std::tuple<decltype(id), decltype(tag), decltype(dataset), decltype(value)>; // future introspection
         };
@@ -179,7 +175,7 @@ namespace database
         struct FL: public Table<decltype("T_FL"_s)>
         {
             static constexpr Column<FL, decltype("id"_s)   , std::ptrdiff_t, Flags<pk, not_null>> id    = {};
-            static constexpr Column<FL, decltype("tag"_s)    , std::ptrdiff_t, Flags<fk<decltype(Tag::id)>, not_null>    > tag     = {};
+            static constexpr Column<FL, decltype("tag"_s)    , std::ptrdiff_t, Flags<not_null>    > tag     = {};
             static constexpr Column<FL, decltype("dataset"_s), std::ptrdiff_t, Flags<fk<decltype(DataSet::id)>, not_null>> dataset = {};
             static constexpr Column<FL, decltype("value"_s), std::ptrdiff_t, Flags<not_null>    > value = {};
 
@@ -188,40 +184,40 @@ namespace database
 
         struct DA: public Table<decltype("T_DA"_s)>
         {
-            static constexpr Column<DA, decltype("id"_s)   , std::ptrdiff_t, Flags<pk, not_null>> id    = {};
-            static constexpr Column<DA, decltype("tag"_s)    , std::ptrdiff_t, Flags<fk<decltype(Tag::id)>, not_null>    > tag     = {};
-            static constexpr Column<DA, decltype("dataset"_s), std::ptrdiff_t, Flags<fk<decltype(DataSet::id)>, not_null>> dataset = {};
-            static constexpr Column<DA, decltype("value"_s), std::ptrdiff_t, Flags<not_null>    > value = {};
+            static constexpr Column<DA, decltype("id"_s)     , std::ptrdiff_t  , Flags<pk, not_null>                        > id        = {};
+            static constexpr Column<DA, decltype("tag"_s)    , std::ptrdiff_t  , Flags<not_null>     > tag       = {};
+            static constexpr Column<DA, decltype("dataset"_s), std::ptrdiff_t  , Flags<fk<decltype(DataSet::id)>, not_null> > dataset   = {};
+            static constexpr Column<DA, decltype("value"_s)  , std::string_view, Flags<not_null>                            > value     = {};
 
             using columns = std::tuple<decltype(id), decltype(tag), decltype(dataset), decltype(value)>; // future introspection
         };
 
         struct UI: public Table<decltype("T_UI"_s)>
         {
-            static constexpr Column<UI, decltype("id"_s)   , std::ptrdiff_t, Flags<pk, not_null>> id    = {};
-            static constexpr Column<UI, decltype("tag"_s)    , std::ptrdiff_t, Flags<fk<decltype(Tag::id)>, not_null>    > tag     = {};
-            static constexpr Column<UI, decltype("dataset"_s), std::ptrdiff_t, Flags<fk<decltype(DataSet::id)>, not_null>> dataset = {};
-            static constexpr Column<UI, decltype("value"_s), std::ptrdiff_t, Flags<not_null>    > value = {};
+            static constexpr Column<UI, decltype("id"_s)     , std::ptrdiff_t  , Flags<pk, not_null>                       > id      = {};
+            static constexpr Column<UI, decltype("tag"_s)    , std::ptrdiff_t  , Flags<not_null>    > tag     = {};
+            static constexpr Column<UI, decltype("dataset"_s), std::ptrdiff_t  , Flags<fk<decltype(DataSet::id)>, not_null>> dataset = {};
+            static constexpr Column<UI, decltype("value"_s)  , std::string_view, Flags<not_null>                           > value   = {};
 
             using columns = std::tuple<decltype(id), decltype(tag), decltype(dataset), decltype(value)>; // future introspection
         };
 
         struct SH: public Table<decltype("T_SH"_s)>
         {
-            static constexpr Column<SH, decltype("id"_s)   , std::ptrdiff_t, Flags<pk, not_null>> id    = {};
-            static constexpr Column<SH, decltype("tag"_s)    , std::ptrdiff_t, Flags<fk<decltype(Tag::id)>, not_null>    > tag     = {};
-            static constexpr Column<SH, decltype("dataset"_s), std::ptrdiff_t, Flags<fk<decltype(DataSet::id)>, not_null>> dataset = {};
-            static constexpr Column<SH, decltype("value"_s), std::ptrdiff_t, Flags<not_null>    > value = {};
+            static constexpr Column<SH, decltype("id"_s)     , std::ptrdiff_t  , Flags<pk, not_null>                        > id        = {};
+            static constexpr Column<SH, decltype("tag"_s)    , std::ptrdiff_t  , Flags<not_null>     > tag       = {};
+            static constexpr Column<SH, decltype("dataset"_s), std::ptrdiff_t  , Flags<fk<decltype(DataSet::id)>, not_null> > dataset   = {};
+            static constexpr Column<SH, decltype("value"_s)  , std::string_view, Flags<not_null>                            > value     = {};
 
             using columns = std::tuple<decltype(id), decltype(tag), decltype(dataset), decltype(value)>; // future introspection
         };
 
         struct TM: public Table<decltype("T_TM"_s)>
         {
-            static constexpr Column<TM, decltype("id"_s)   , std::ptrdiff_t, Flags<pk, not_null>> id    = {};
-            static constexpr Column<TM, decltype("tag"_s)    , std::ptrdiff_t, Flags<fk<decltype(Tag::id)>, not_null>    > tag     = {};
-            static constexpr Column<TM, decltype("dataset"_s), std::ptrdiff_t, Flags<fk<decltype(DataSet::id)>, not_null>> dataset = {};
-            static constexpr Column<TM, decltype("value"_s), std::ptrdiff_t, Flags<not_null>    > value = {};
+            static constexpr Column<TM, decltype("id"_s)     , std::ptrdiff_t  , Flags<pk, not_null>                        > id        = {};
+            static constexpr Column<TM, decltype("tag"_s)    , std::ptrdiff_t  , Flags<not_null>     > tag       = {};
+            static constexpr Column<TM, decltype("dataset"_s), std::ptrdiff_t  , Flags<fk<decltype(DataSet::id)>, not_null> > dataset   = {};
+            static constexpr Column<TM, decltype("value"_s)  , std::string_view, Flags<not_null>                            > value     = {};
 
             using columns = std::tuple<decltype(id), decltype(tag), decltype(dataset), decltype(value)>; // future introspection
         };
@@ -229,7 +225,7 @@ namespace database
         struct UC: public Table<decltype("T_UC"_s)>
         {
             static constexpr Column<UC, decltype("id"_s)   , std::ptrdiff_t, Flags<pk, not_null>> id    = {};
-            static constexpr Column<UC, decltype("tag"_s)    , std::ptrdiff_t, Flags<fk<decltype(Tag::id)>, not_null>    > tag     = {};
+            static constexpr Column<UC, decltype("tag"_s)    , std::ptrdiff_t, Flags<not_null>    > tag     = {};
             static constexpr Column<UC, decltype("dataset"_s), std::ptrdiff_t, Flags<fk<decltype(DataSet::id)>, not_null>> dataset = {};
             static constexpr Column<UC, decltype("value"_s), std::ptrdiff_t, Flags<not_null>    > value = {};
 
@@ -239,7 +235,7 @@ namespace database
         struct UR: public Table<decltype("T_UR"_s)>
         {
             static constexpr Column<UR, decltype("id"_s)   , std::ptrdiff_t, Flags<pk, not_null>> id    = {};
-            static constexpr Column<UR, decltype("tag"_s)    , std::ptrdiff_t, Flags<fk<decltype(Tag::id)>, not_null>    > tag     = {};
+            static constexpr Column<UR, decltype("tag"_s)    , std::ptrdiff_t, Flags<not_null>    > tag     = {};
             static constexpr Column<UR, decltype("dataset"_s), std::ptrdiff_t, Flags<fk<decltype(DataSet::id)>, not_null>> dataset = {};
             static constexpr Column<UR, decltype("value"_s), std::ptrdiff_t, Flags<not_null>    > value = {};
 
@@ -249,7 +245,7 @@ namespace database
         struct DT: public Table<decltype("T_DT"_s)>
         {
             static constexpr Column<DT, decltype("id"_s)   , std::ptrdiff_t, Flags<pk, not_null>> id    = {};
-            static constexpr Column<DT, decltype("tag"_s)    , std::ptrdiff_t, Flags<fk<decltype(Tag::id)>, not_null>    > tag     = {};
+            static constexpr Column<DT, decltype("tag"_s)    , std::ptrdiff_t, Flags<not_null>    > tag     = {};
             static constexpr Column<DT, decltype("dataset"_s), std::ptrdiff_t, Flags<fk<decltype(DataSet::id)>, not_null>> dataset = {};
             static constexpr Column<DT, decltype("value"_s), std::ptrdiff_t, Flags<not_null>    > value = {};
 
@@ -258,30 +254,30 @@ namespace database
 
         struct DS: public Table<decltype("T_DS"_s)>
         {
-            static constexpr Column<DS, decltype("id"_s)   , std::ptrdiff_t, Flags<pk, not_null>> id    = {};
-            static constexpr Column<DS, decltype("tag"_s)    , std::ptrdiff_t, Flags<fk<decltype(Tag::id)>, not_null>    > tag     = {};
+            static constexpr Column<DS, decltype("id"_s)     , std::ptrdiff_t, Flags<pk, not_null>                       > id      = {};
+            static constexpr Column<DS, decltype("tag"_s)    , std::ptrdiff_t, Flags<not_null>    > tag     = {};
             static constexpr Column<DS, decltype("dataset"_s), std::ptrdiff_t, Flags<fk<decltype(DataSet::id)>, not_null>> dataset = {};
-            static constexpr Column<DS, decltype("value"_s), std::ptrdiff_t, Flags<not_null>    > value = {};
+            static constexpr Column<DS, decltype("value"_s)  , double        , Flags<not_null>                           > value   = {};
 
             using columns = std::tuple<decltype(id), decltype(tag), decltype(dataset), decltype(value)>; // future introspection
         };
 
         struct CS: public Table<decltype("T_CS"_s)>
         {
-            static constexpr Column<CS, decltype("id"_s)   , std::ptrdiff_t, Flags<pk, not_null>> id    = {};
-            static constexpr Column<CS, decltype("tag"_s)    , std::ptrdiff_t, Flags<fk<decltype(Tag::id)>, not_null>    > tag     = {};
-            static constexpr Column<CS, decltype("dataset"_s), std::ptrdiff_t, Flags<fk<decltype(DataSet::id)>, not_null>> dataset = {};
-            static constexpr Column<CS, decltype("value"_s), std::ptrdiff_t, Flags<not_null>    > value = {};
+            static constexpr Column<CS, decltype("id"_s)     , std::ptrdiff_t  , Flags<pk, not_null>                       > id      = {};
+            static constexpr Column<CS, decltype("tag"_s)    , std::ptrdiff_t  , Flags<not_null>    > tag     = {};
+            static constexpr Column<CS, decltype("dataset"_s), std::ptrdiff_t  , Flags<fk<decltype(DataSet::id)>, not_null>> dataset = {};
+            static constexpr Column<CS, decltype("value"_s)  , std::string_view, Flags<not_null>                           > value   = {};
 
             using columns = std::tuple<decltype(id), decltype(tag), decltype(dataset), decltype(value)>; // future introspection
         };
 
         struct IS: public Table<decltype("T_IS"_s)>
         {
-            static constexpr Column<IS, decltype("id"_s)   , std::ptrdiff_t, Flags<pk, not_null>> id    = {};
-            static constexpr Column<IS, decltype("tag"_s)    , std::ptrdiff_t, Flags<fk<decltype(Tag::id)>, not_null>    > tag     = {};
+            static constexpr Column<IS, decltype("id"_s)     , std::ptrdiff_t, Flags<pk, not_null>                       > id      = {};
+            static constexpr Column<IS, decltype("tag"_s)    , std::ptrdiff_t, Flags<not_null>    > tag     = {};
             static constexpr Column<IS, decltype("dataset"_s), std::ptrdiff_t, Flags<fk<decltype(DataSet::id)>, not_null>> dataset = {};
-            static constexpr Column<IS, decltype("value"_s), std::ptrdiff_t, Flags<not_null>    > value = {};
+            static constexpr Column<IS, decltype("value"_s)  , std::ptrdiff_t, Flags<not_null>                           > value   = {};
 
             using columns = std::tuple<decltype(id), decltype(tag), decltype(dataset), decltype(value)>; // future introspection
         };
@@ -289,7 +285,7 @@ namespace database
         struct LT: public Table<decltype("T_LT"_s)>
         {
             static constexpr Column<LT, decltype("id"_s)   , std::ptrdiff_t, Flags<pk, not_null>> id    = {};
-            static constexpr Column<LT, decltype("tag"_s)    , std::ptrdiff_t, Flags<fk<decltype(Tag::id)>, not_null>    > tag     = {};
+            static constexpr Column<LT, decltype("tag"_s)    , std::ptrdiff_t, Flags<not_null>    > tag     = {};
             static constexpr Column<LT, decltype("dataset"_s), std::ptrdiff_t, Flags<fk<decltype(DataSet::id)>, not_null>> dataset = {};
             static constexpr Column<LT, decltype("value"_s), std::ptrdiff_t, Flags<not_null>    > value = {};
 
@@ -299,7 +295,7 @@ namespace database
         struct OL: public Table<decltype("T_OL"_s)>
         {
             static constexpr Column<OL, decltype("id"_s)     , std::ptrdiff_t, Flags<pk, not_null>> id    = {};
-            static constexpr Column<OL, decltype("tag"_s)    , std::ptrdiff_t, Flags<fk<decltype(Tag::id)>, not_null>    > tag     = {};
+            static constexpr Column<OL, decltype("tag"_s)    , std::ptrdiff_t, Flags<not_null>    > tag     = {};
             static constexpr Column<OL, decltype("dataset"_s), std::ptrdiff_t, Flags<fk<decltype(DataSet::id)>, not_null>> dataset = {};
             static constexpr Column<OL, decltype("value"_s)  , std::ptrdiff_t, Flags<not_null>    > value = {};
 
@@ -309,7 +305,7 @@ namespace database
         struct PN: public Table<decltype("T_PN"_s)>
         {
             static constexpr Column<PN, decltype("id"_s)     , std::ptrdiff_t, Flags<pk, not_null>> id    = {};
-            static constexpr Column<PN, decltype("tag"_s)    , std::ptrdiff_t, Flags<fk<decltype(Tag::id)>, not_null>    > tag     = {};
+            static constexpr Column<PN, decltype("tag"_s)    , std::ptrdiff_t, Flags<not_null>    > tag     = {};
             static constexpr Column<PN, decltype("dataset"_s), std::ptrdiff_t, Flags<fk<decltype(DataSet::id)>, not_null>> dataset = {};
             static constexpr Column<PN, decltype("value"_s)  , std::string_view, Flags<not_null>    > value = {};
 
@@ -318,20 +314,20 @@ namespace database
 
         struct ST: public Table<decltype("T_ST"_s)>
         {
-            static constexpr Column<AE, decltype("id"_s)     , std::ptrdiff_t, Flags<pk, not_null>> id    = {};
-            static constexpr Column<AE, decltype("tag"_s)    , std::ptrdiff_t, Flags<fk<decltype(Tag::id)>, not_null>    > tag     = {};
-            static constexpr Column<AE, decltype("dataset"_s), std::ptrdiff_t, Flags<fk<decltype(DataSet::id)>, not_null>> dataset = {};
-            static constexpr Column<AE, decltype("value"_s)  , std::ptrdiff_t, Flags<not_null>    > value = {};
+            static constexpr Column<ST, decltype("id"_s)     , std::ptrdiff_t  , Flags<pk, not_null>                        > id        = {};
+            static constexpr Column<ST, decltype("tag"_s)    , std::ptrdiff_t  , Flags<not_null>     > tag       = {};
+            static constexpr Column<ST, decltype("dataset"_s), std::ptrdiff_t  , Flags<fk<decltype(DataSet::id)>, not_null> > dataset   = {};
+            static constexpr Column<ST, decltype("value"_s)  , std::string_view, Flags<not_null>                            > value     = {};
 
             using columns = std::tuple<decltype(id), decltype(tag), decltype(dataset), decltype(value)>; // future introspection
         };
 
         struct LO: public Table<decltype("T_LO"_s)>
         {
-            static constexpr Column<LO, decltype("id"_s)     , std::ptrdiff_t, Flags<pk, not_null>> id    = {};
-            static constexpr Column<LO, decltype("tag"_s)    , std::ptrdiff_t, Flags<fk<decltype(Tag::id)>, not_null>    > tag     = {};
-            static constexpr Column<LO, decltype("dataset"_s), std::ptrdiff_t, Flags<fk<decltype(DataSet::id)>, not_null>> dataset = {};
-            static constexpr Column<LO, decltype("value"_s)  , std::ptrdiff_t, Flags<not_null>    > value = {};
+            static constexpr Column<LO, decltype("id"_s)     , std::ptrdiff_t , Flags<pk, not_null>                       > id      = {};
+            static constexpr Column<LO, decltype("tag"_s)    , std::ptrdiff_t , Flags<not_null>    > tag     = {};
+            static constexpr Column<LO, decltype("dataset"_s), std::ptrdiff_t , Flags<fk<decltype(DataSet::id)>, not_null>> dataset = {};
+            static constexpr Column<LO, decltype("value"_s)  , std::string_view, Flags<not_null>                          > value   = {};
 
             using columns = std::tuple<decltype(id), decltype(tag), decltype(dataset), decltype(value)>; // future introspection
         };
@@ -358,12 +354,257 @@ namespace database
     }
 }
 
+namespace
+{
+    std::ptrdiff_t get_tag( const auto &key )
+    {
+        std::ptrdiff_t result = 0;
+        {
+            std::stringstream stream;
+            stream << std::hex << key;
+            stream >> result;
+        }
+        return result;
+    }
+
+    void load( const std::ptrdiff_t dataset_id, const nlohmann::json &data )
+    {
+        using namespace database::tables;
+
+        if (data.size() == 0)
+        {
+            return;
+        }
+
+        if (!data.is_object())
+        {
+            return;
+        }
+
+        for ( const auto &item : data.items())
+        {
+            const std::ptrdiff_t tag_code = get_tag(item.key());
+
+            const auto vr = item.value()["vr"].get<std::string_view>();
+
+            if (    (item.value().find("Value") == end(item.value()))
+                 && (item.value().find("InlineBinary") == end(item.value())))
+            {
+                continue;
+            }
+
+            if (vr == "SQ")
+            {
+                std::ptrdiff_t index = 0;
+                for ( const auto &sub_items : item.value()["Value"])
+                {
+                    const auto sub_dataset_id = database::insert_into<DataSet>(DataSet::date = 0l);
+
+                    database::insert_into<SQ>(  SQ::tag = tag_code
+                                              , SQ::dataset = dataset_id
+                                              , SQ::value = sub_dataset_id
+                                              , SQ::index = index++ );
+
+                    const auto &sub_dataset_data = sub_items;
+                    load(sub_dataset_id, sub_dataset_data);
+                }
+            }
+            else if (vr == "PN")
+            {
+                database::insert_into<PN>(  PN::tag = tag_code
+                                          , PN::dataset = dataset_id
+                                          , PN::value = item.value()["Value"][0]["Alphabetic"].get<std::string_view>() );
+            }
+            else if (vr == "US")
+            {
+                database::insert_into<US>(  US::tag = tag_code
+                                          , US::dataset = dataset_id
+                                          , US::value = item.value()["Value"][0].get<unsigned short>() );
+            }
+            else if (vr == "SS")
+            {
+                database::insert_into<SS>(  SS::tag = tag_code
+                                          , SS::dataset = dataset_id
+                                          , SS::value = item.value()["Value"][0].get<signed short>() );
+            }
+            else if (vr == "UI")
+            {
+                database::insert_into<UI>(  UI::tag = tag_code
+                                          , UI::dataset = dataset_id
+                                          , UI::value = item.value()["Value"][0].get<std::string_view>() );
+            }
+            else if (vr == "LO")
+            {
+                for ( const auto &value : item.value()["Value"])
+                {
+                    database::insert_into<LO>(  LO::tag = tag_code
+                                              , LO::dataset = dataset_id
+                                              , LO::value = value.get<std::string_view>() );
+                }
+            }
+            else if (vr == "DS")
+            {
+                for ( const auto &value : item.value()["Value"])
+                {
+                    database::insert_into<DS>(  DS::tag = tag_code
+                                              , DS::dataset = dataset_id
+                                              , DS::value = value.get<double>() );
+                }
+            }
+            else if (vr == "IS")
+            {
+                database::insert_into<IS>(  IS::tag = tag_code
+                                          , IS::dataset = dataset_id
+                                          , IS::value = item.value()["Value"][0].get<std::ptrdiff_t>() );
+            }
+            else if (vr == "CS")
+            {
+                for ( const auto &value : item.value()["Value"])
+                {
+                    database::insert_into<CS>(  CS::tag = tag_code
+                                              , CS::dataset = dataset_id
+                                              , CS::value = value.get<std::string_view>() );
+
+                }
+            }
+            else if (vr == "TM")
+            {
+                database::insert_into<TM>(  TM::tag = tag_code
+                                          , TM::dataset = dataset_id
+                                          , TM::value = item.value()["Value"][0].get<std::string_view>() );
+            }
+            else if (vr == "DA")
+            {
+                database::insert_into<DA>(  DA::tag = tag_code
+                                          , DA::dataset = dataset_id
+                                          , DA::value = item.value()["Value"][0].get<std::string_view>() );
+            }
+            else if (vr == "SH")
+            {
+                database::insert_into<SH>(  SH::tag = tag_code
+                                          , SH::dataset = dataset_id
+                                          , SH::value = item.value()["Value"][0].get<std::string_view>() );
+            }
+            else if (vr == "ST")
+            {
+                database::insert_into<ST>(  ST::tag = tag_code
+                                          , ST::dataset = dataset_id
+                                          , ST::value = item.value()["Value"][0].get<std::string_view>() );
+            }
+            else if (vr == "AS")
+            {
+                database::insert_into<AS>(  AS::tag = tag_code
+                                          , AS::dataset = dataset_id
+                                          , AS::value = item.value()["Value"][0].get<std::string_view>() );
+            }
+            else if (vr == "UN")
+            {
+                database::insert_into<UN>(  UN::tag = tag_code
+                                          , UN::dataset = dataset_id
+                                          , UN::value = item.value()["InlineBinary"].get<std::string_view>() );
+            }
+            else if (vr == "OW")
+            {
+                database::insert_into<OW>(  OW::tag = tag_code
+                                          , OW::dataset = dataset_id
+                                          , OW::value = item.value()["InlineBinary"].get<std::string_view>() );
+            }
+            else
+            {
+                std::cout << "Not implemented: " << vr << std::endl;
+            }
+        }
+    }
+
+
+    template<typename T>
+    using select_t = decltype(database::select(T::id, T::tag, T::value).template from<database::tables::DataSet>().template left_join<T>(T::dataset == database::tables::DataSet::id));
+
+    template<typename T>
+    void print( const std::ptrdiff_t dataset_id, const std::size_t level )
+    {
+        using namespace database::tables;
+
+        std::string pad = "";
+        for ( std::size_t index = 0; index < level; index++ )
+        {
+            pad += "\t";
+        }
+
+        for (const auto [id, tag, value] : select_t<T>().where(DataSet::id == dataset_id))
+        {
+            std::cout << pad << dataset_id << " " << typename T::name_t().view() << " " << id << " tag: " << tag << " value: " << value << std::endl;
+        }
+    }
+
+    template<typename ... T>
+    void print2(const std::ptrdiff_t dataset_id, const std::size_t level = 0)
+    {
+        using namespace database::tables;
+        const auto query = ((select_t<T>().where(DataSet::id == dataset_id).Union()) + ... );
+    }
+
+    void print( const std::ptrdiff_t id, const std::size_t level = 0 )
+    {
+        using namespace database::tables;
+
+        std::string pad = "";
+        for ( std::size_t index = 0; index < level; index++ )
+        {
+            pad += "\t";
+        }
+
+        print2<AE, AS>(id, level);
+
+        print<AE>(id, level);
+        print<AS>(id, level);
+        print<AT>(id, level);
+        print<OB>(id, level);
+        print<OW>(id, level);
+        print<OF>(id, level);
+        print<OD>(id, level);
+        print<UT>(id, level);
+        print<UN>(id, level);
+        print<UL>(id, level);
+        print<US>(id, level);
+        print<SS>(id, level);
+        print<SL>(id, level);
+        print<FD>(id, level);
+        print<FL>(id, level);
+        print<DA>(id, level);
+        print<UI>(id, level);
+        print<SH>(id, level);
+        print<TM>(id, level);
+        print<UC>(id, level);
+        print<UR>(id, level);
+        print<DT>(id, level);
+        print<DS>(id, level);
+        print<CS>(id, level);
+        print<IS>(id, level);
+        print<LT>(id, level);
+        print<OL>(id, level);
+        print<PN>(id, level);
+        print<ST>(id, level);
+        print<LO>(id, level);
+
+        for ( const auto [tag, value] : database::select(SQ::tag, SQ::value)
+              .from<DataSet>()
+              .left_join<SQ>(SQ::dataset == DataSet::id)
+              .where(DataSet::id == id))
+        {
+            std::cout << pad << id << " SQ tag: " << tag << " value: " << value << std::endl;
+            print(value, level + 1);
+        }
+    }
+}
+
 int main()
 {
     using namespace database::tables;
 
+   // database::factory_t::instance()->reset("/home/everton/compile_time_sql/database.db");
+
     database::create_table<database::tables::DataSet>();
-    database::create_table<database::tables::Tag>();
     database::create_table<database::tables::AE>();
     database::create_table<database::tables::AS>();
     database::create_table<database::tables::AT>();
@@ -398,22 +639,23 @@ int main()
 
     database::factory_t::instance()->execute("PRAGMA foreign_keys = ON;");
 
-    const auto id = database::insert_into<DataSet>(DataSet::date = 1112317l); // return new id
-    const auto id_tag_patient_name = database::insert_into<Tag>( Tag::value = 0x00100010l ); // return new id
-
-    database::insert_into<PN>(   PN::tag = id_tag_patient_name
-                               , PN::dataset = id
-                               , PN::value = "Blaise" );
-
-
-    for ( const auto [tag, value] : database::select( Tag::value, PN::value )
-          .from<DataSet>()
-          .left_join<PN>(PN::dataset == DataSet::id)
-          .left_join<Tag>(Tag::id == PN::tag)
-          .where(DataSet::id == id))
+    const auto id = database::insert_into<DataSet>(DataSet::date = 0l);
     {
-        std::cout << " tag: " << tag << " value: " << value << std::endl;
+        nlohmann::json data;
+        {
+            std::ifstream stream("/home/everton/compile_time_sql/file.json");
+            if (!stream)
+            {
+                std::cerr << "faile.json not open" << std::endl;
+                return -1;
+            }
+            stream >> data;
+        }
+
+        load(id, data);
     }
+
+    print(id);
 
     return 0;
 }

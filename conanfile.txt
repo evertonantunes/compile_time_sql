@@ -1,6 +1,7 @@
 [requires]
 catch2/2.4.1@bincrafters/stable
 sqlite3/3.26.0@bincrafters/stable
+jsonformoderncpp/3.4.0@vthiery/stable
 
 [options]
 sqlite3:shared=True
