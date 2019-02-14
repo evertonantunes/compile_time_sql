@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <type_traits>
 
+#include <iostream>
+
 namespace sql
 {
     template<char ... String>
@@ -74,6 +76,18 @@ namespace sql
     {
         return false;
     }
+
+
+    template<typename Type, typename Name>
+    struct default_column
+    {
+        using type_t = Type;
+
+        static constexpr auto to_string( )
+        {
+            return Name();
+        }
+    };
 
     namespace operators
     {
@@ -290,12 +304,12 @@ namespace sql
         }
     };
 
-    template<std::size_t M, std::size_t I>
+    template<typename SEP, std::size_t M, std::size_t I>
     constexpr auto sep( )
     {
         if constexpr (I != 0)
         {
-            return ", "_s;
+            return SEP();
         }
         else
         {
@@ -303,12 +317,12 @@ namespace sql
         }
     }
 
-    template<std::size_t M, std::size_t I, char ...String>
+    template<typename SEP, std::size_t M, std::size_t I, char ...String>
     constexpr auto format( const StaticArray<String...> &data  )
     {
         if constexpr (sizeof ... (String) > 0)
         {
-            return sep<M, I>() + data;
+            return sep<SEP, M, I>() + data;
         }
         else
         {
@@ -319,7 +333,13 @@ namespace sql
     template<typename ...T, std::size_t ...I>
     constexpr auto join( const std::tuple<T...> &tup, std::index_sequence<I...> )
     {
-        return (format<sizeof ... (T), I>(std::get<I>(tup)) + ... + ""_s );
+        return (format<decltype(", "_s), sizeof ... (T), I>(std::get<I>(tup)) + ... + ""_s );
+    }
+
+    template<typename SEP, typename ...T, std::size_t ...I>
+    constexpr auto join2( const std::tuple<T...> &tup, std::index_sequence<I...> )
+    {
+        return (format<SEP, sizeof ... (T), I>(std::get<I>(tup)) + ... + ""_s );
     }
 
     template<typename C>
@@ -517,7 +537,12 @@ namespace sql
 
             static constexpr auto to_string( )
             {
-                return T::to_string() + "WHERE "_s + WHERE::to_string() + ";"_s;
+                return T::to_string() + "WHERE "_s + WHERE::to_string();
+            }
+
+            auto data() const
+            {
+                return m_where.data();
             }
 
             auto create_statement() const
@@ -768,6 +793,42 @@ namespace sql
         {
             TableCreator<Factory, Table, COLUMNS...>::run();
         }
+
+        template<typename FACTORY, typename QUERY, typename DATA, typename Iterator>
+        struct Union_all
+        {
+            DATA m_data;
+
+            Union_all( DATA &&data )
+                : m_data(std::move(data))
+            {}
+
+            static constexpr auto to_string( )
+            {
+                return QUERY();
+            }
+
+            auto data() const
+            {
+                return m_data;
+            }
+
+            auto create_statement() const
+            {
+                static const constexpr auto text = to_string();
+                return FACTORY::make_context(text.c_str(), text.size(), data());
+            }
+
+            Iterator begin() const
+            {
+                return Iterator(create_statement());
+            }
+
+            Iterator end() const
+            {
+                return Iterator();
+            }
+        };
     }
 
     template<typename F, typename ...T>
@@ -781,6 +842,14 @@ namespace sql
     {
         auto _tup = std::tuple_cat(args.data()...);
         return impl::Insert<FACTORY, TABLE, decltype(_tup), COLUMNS...>(std::move(_tup)).run();
+    }
+
+    template<typename FACTORY, typename First, typename ...Last>
+    auto union_all( First &&first, Last &&...last )
+    {
+        auto data = std::tuple_cat(first.data(), last.data() ... );
+        const constexpr auto query = join2<decltype(" UNION ALL "_s)>(std::make_tuple(first.to_string(), last.to_string() ... ), std::make_index_sequence<1 + sizeof ... (Last)>());
+        return impl::Union_all<FACTORY, decltype(query), decltype(data), typename First::iterator_t>(std::move(data));
     }
 
     template<typename Factory, typename Table>
