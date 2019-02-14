@@ -41,6 +41,12 @@ namespace database
         return sql::insert_into<factory_t, H>(std::forward<T>(args)...);
     }
 
+    template<typename ...T>
+    auto union_all( T &&...args )
+    {
+        return sql::union_all<factory_t>(std::forward<T>(args)...);
+    }
+
     template<typename T>
     void create_table()
     {
@@ -67,6 +73,7 @@ int main()
                                     , users_t::second_name = database::insert_into<strings_t>(strings_t::text = "Pascal")
                                     , users_t::age = 39l );
 
+
     database::insert_into<users_t>(   users_t::first_name = database::insert_into<strings_t>(strings_t::text = "Leonhard")
                                     , users_t::second_name = database::insert_into<strings_t>(strings_t::text = "Euler")
                                     , users_t::age = 76l );
@@ -83,10 +90,6 @@ int main()
         .from<users_t>()
         .left_join<f_name>(f_name::as(strings_t::id) == users_t::first_name)
         .left_join<s_name>(s_name::as(strings_t::id) == users_t::second_name));
-
-    const auto text = my_select_t().where(users_t::age == 39l || users_t::age > 70l);
-
-    std::cout << "text: " << text.to_string().view() << std::endl;
 
     for ( const auto [id, first_name, second_name, age] : my_select_t().where(users_t::age == 39l || users_t::age > 70l))
     {
