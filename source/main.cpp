@@ -367,6 +367,49 @@ namespace
         return result;
     }
 
+
+    template<typename T>
+    void load_vr(const std::ptrdiff_t dataset_id, const std::ptrdiff_t tag, const nlohmann::json &data)
+    {
+        using namespace database::tables;
+
+        if (data.size() == 0)
+        {
+            return;
+        }
+
+        if constexpr (std::is_same_v<T, PN>)
+        {
+            using type_t = typename decltype(T::value)::type_t;
+            database::insert_into<T>(  T::tag = tag
+                                     , T::dataset = dataset_id
+                                     , T::value = data["Value"][0]["Alphabetic"].get<type_t>() );
+        }
+        else if constexpr (std::is_same_v<T, OW> || std::is_same_v<T, UN>)
+        {
+            using type_t = typename decltype(T::value)::type_t;
+            database::insert_into<T>(  T::tag = tag
+                                     , T::dataset = dataset_id
+                                     , T::value = data["InlineBinary"].get<type_t>() );
+        }
+        else
+        {
+            if (!data.is_object())
+            {
+                return;
+            }
+
+            using type_t = typename decltype(T::value)::type_t;
+
+            for ( const auto &value : data["Value"] )
+            {
+                database::insert_into<T>(  T::tag = tag
+                                          , T::dataset = dataset_id
+                                          , T::value = value.get<type_t>() );
+            }
+        }
+    }
+
     void load( const std::ptrdiff_t dataset_id, const nlohmann::json &data )
     {
         using namespace database::tables;
@@ -409,110 +452,39 @@ namespace
                     load(sub_dataset_id, sub_dataset_data);
                 }
             }
-            else if (vr == "PN")
-            {
-                database::insert_into<PN>(  PN::tag = tag_code
-                                          , PN::dataset = dataset_id
-                                          , PN::value = item.value()["Value"][0]["Alphabetic"].get<std::string_view>() );
-            }
-            else if (vr == "US")
-            {
-                database::insert_into<US>(  US::tag = tag_code
-                                          , US::dataset = dataset_id
-                                          , US::value = item.value()["Value"][0].get<unsigned short>() );
-            }
-            else if (vr == "SS")
-            {
-                database::insert_into<SS>(  SS::tag = tag_code
-                                          , SS::dataset = dataset_id
-                                          , SS::value = item.value()["Value"][0].get<signed short>() );
-            }
-            else if (vr == "UI")
-            {
-                database::insert_into<UI>(  UI::tag = tag_code
-                                          , UI::dataset = dataset_id
-                                          , UI::value = item.value()["Value"][0].get<std::string_view>() );
-            }
-            else if (vr == "LO")
-            {
-                for ( const auto &value : item.value()["Value"])
-                {
-                    database::insert_into<LO>(  LO::tag = tag_code
-                                              , LO::dataset = dataset_id
-                                              , LO::value = value.get<std::string_view>() );
-                }
-            }
-            else if (vr == "DS")
-            {
-                for ( const auto &value : item.value()["Value"])
-                {
-                    database::insert_into<DS>(  DS::tag = tag_code
-                                              , DS::dataset = dataset_id
-                                              , DS::value = value.get<double>() );
-                }
-            }
-            else if (vr == "IS")
-            {
-                database::insert_into<IS>(  IS::tag = tag_code
-                                          , IS::dataset = dataset_id
-                                          , IS::value = item.value()["Value"][0].get<std::ptrdiff_t>() );
-            }
-            else if (vr == "CS")
-            {
-                for ( const auto &value : item.value()["Value"])
-                {
-                    database::insert_into<CS>(  CS::tag = tag_code
-                                              , CS::dataset = dataset_id
-                                              , CS::value = value.get<std::string_view>() );
 
-                }
-            }
-            else if (vr == "TM")
-            {
-                database::insert_into<TM>(  TM::tag = tag_code
-                                          , TM::dataset = dataset_id
-                                          , TM::value = item.value()["Value"][0].get<std::string_view>() );
-            }
-            else if (vr == "DA")
-            {
-                database::insert_into<DA>(  DA::tag = tag_code
-                                          , DA::dataset = dataset_id
-                                          , DA::value = item.value()["Value"][0].get<std::string_view>() );
-            }
-            else if (vr == "SH")
-            {
-                database::insert_into<SH>(  SH::tag = tag_code
-                                          , SH::dataset = dataset_id
-                                          , SH::value = item.value()["Value"][0].get<std::string_view>() );
-            }
-            else if (vr == "ST")
-            {
-                database::insert_into<ST>(  ST::tag = tag_code
-                                          , ST::dataset = dataset_id
-                                          , ST::value = item.value()["Value"][0].get<std::string_view>() );
-            }
-            else if (vr == "AS")
-            {
-                database::insert_into<AS>(  AS::tag = tag_code
-                                          , AS::dataset = dataset_id
-                                          , AS::value = item.value()["Value"][0].get<std::string_view>() );
-            }
-            else if (vr == "UN")
-            {
-                database::insert_into<UN>(  UN::tag = tag_code
-                                          , UN::dataset = dataset_id
-                                          , UN::value = item.value()["InlineBinary"].get<std::string_view>() );
-            }
-            else if (vr == "OW")
-            {
-                database::insert_into<OW>(  OW::tag = tag_code
-                                          , OW::dataset = dataset_id
-                                          , OW::value = item.value()["InlineBinary"].get<std::string_view>() );
-            }
-            else
-            {
-                std::cout << "Not implemented: " << vr << std::endl;
-            }
+            if (vr == "AE") load_vr<AE>(dataset_id, tag_code, item.value()); continue;
+            if (vr == "AS") load_vr<AS>(dataset_id, tag_code, item.value()); continue;
+            if (vr == "AT") load_vr<AT>(dataset_id, tag_code, item.value()); continue;
+            if (vr == "OB") load_vr<OB>(dataset_id, tag_code, item.value()); continue;
+            if (vr == "OW") load_vr<OW>(dataset_id, tag_code, item.value()); continue;
+            if (vr == "OF") load_vr<OF>(dataset_id, tag_code, item.value()); continue;
+            if (vr == "OD") load_vr<OD>(dataset_id, tag_code, item.value()); continue;
+            if (vr == "SQ") load_vr<SQ>(dataset_id, tag_code, item.value()); continue;
+            if (vr == "UT") load_vr<UT>(dataset_id, tag_code, item.value()); continue;
+            if (vr == "UN") load_vr<UN>(dataset_id, tag_code, item.value()); continue;
+            if (vr == "UL") load_vr<UL>(dataset_id, tag_code, item.value()); continue;
+            if (vr == "US") load_vr<US>(dataset_id, tag_code, item.value()); continue;
+            if (vr == "SS") load_vr<SS>(dataset_id, tag_code, item.value()); continue;
+            if (vr == "SL") load_vr<SL>(dataset_id, tag_code, item.value()); continue;
+            if (vr == "FD") load_vr<FD>(dataset_id, tag_code, item.value()); continue;
+            if (vr == "FL") load_vr<FL>(dataset_id, tag_code, item.value()); continue;
+            if (vr == "DA") load_vr<DA>(dataset_id, tag_code, item.value()); continue;
+            if (vr == "UI") load_vr<UI>(dataset_id, tag_code, item.value()); continue;
+            if (vr == "SH") load_vr<SH>(dataset_id, tag_code, item.value()); continue;
+            if (vr == "TM") load_vr<TM>(dataset_id, tag_code, item.value()); continue;
+            if (vr == "UC") load_vr<UC>(dataset_id, tag_code, item.value()); continue;
+            if (vr == "UR") load_vr<UR>(dataset_id, tag_code, item.value()); continue;
+            if (vr == "DT") load_vr<DT>(dataset_id, tag_code, item.value()); continue;
+            if (vr == "DS") load_vr<DS>(dataset_id, tag_code, item.value()); continue;
+            if (vr == "CS") load_vr<CS>(dataset_id, tag_code, item.value()); continue;
+            if (vr == "IS") load_vr<IS>(dataset_id, tag_code, item.value()); continue;
+            if (vr == "LT") load_vr<LT>(dataset_id, tag_code, item.value()); continue;
+            if (vr == "OL") load_vr<OL>(dataset_id, tag_code, item.value()); continue;
+            if (vr == "PN") load_vr<PN>(dataset_id, tag_code, item.value()); continue;
+            if (vr == "ST") load_vr<ST>(dataset_id, tag_code, item.value()); continue;
+            if (vr == "LO") load_vr<LO>(dataset_id, tag_code, item.value()); continue;
+            std::cout << "Not implemented: " << vr << std::endl;
         }
     }
 
@@ -524,37 +496,15 @@ namespace
     void print( const std::ptrdiff_t dataset_id, const std::size_t level )
     {
         using namespace database::tables;
-
-        std::string pad = "";
-        for ( std::size_t index = 0; index < level; index++ )
-        {
-            pad += "\t";
-        }
-
         for (const auto [id, tag, value] : select_t<T>().where(DataSet::id == dataset_id))
         {
-            std::cout << pad << dataset_id << " " << typename T::name_t().view() << " " << id << " tag: " << tag << " value: " << value << std::endl;
+            std::cout << dataset_id << " " << typename T::name_t().view() << " " << id << " tag: " << tag << " value: " << value << std::endl;
         }
-    }
-
-    template<typename ... T>
-    void print2(const std::ptrdiff_t dataset_id, const std::size_t level = 0)
-    {
-        using namespace database::tables;
-        const auto query = ((select_t<T>().where(DataSet::id == dataset_id).Union()) + ... );
     }
 
     void print( const std::ptrdiff_t id, const std::size_t level = 0 )
     {
         using namespace database::tables;
-
-        std::string pad = "";
-        for ( std::size_t index = 0; index < level; index++ )
-        {
-            pad += "\t";
-        }
-
-        print2<AE, AS>(id, level);
 
         print<AE>(id, level);
         print<AS>(id, level);
@@ -592,7 +542,7 @@ namespace
               .left_join<SQ>(SQ::dataset == DataSet::id)
               .where(DataSet::id == id))
         {
-            std::cout << pad << id << " SQ tag: " << tag << " value: " << value << std::endl;
+            std::cout << id << " SQ tag: " << tag << " value: " << value << std::endl;
             print(value, level + 1);
         }
     }
@@ -643,7 +593,7 @@ int main()
     {
         nlohmann::json data;
         {
-            std::ifstream stream("/home/everton/compile_time_sql/file.json");
+            std::ifstream stream("/home/everton/projects/compile_time_sql/file.json");
             if (!stream)
             {
                 std::cerr << "faile.json not open" << std::endl;

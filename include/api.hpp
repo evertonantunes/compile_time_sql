@@ -502,12 +502,6 @@ namespace sql
             }
         };
 
-        template<typename T>
-        struct TUnion
-        {
-            TUnion
-        };
-
         template<typename T, typename WHERE>
         struct SelectFromWHERE
         {
@@ -520,11 +514,6 @@ namespace sql
             SelectFromWHERE( WHERE &&where )
                 : m_where(std::move(where))
             {}
-
-            constexpr auto Union()
-            {
-                return TUnion<SelectFromWHERE<T, WHERE>>(std::move(m_where));
-            }
 
             static constexpr auto to_string( )
             {
