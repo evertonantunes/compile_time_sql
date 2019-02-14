@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <iomanip>
 
 namespace database
 {
@@ -347,6 +348,12 @@ namespace database
         return sql::insert_into<factory_t, H>(std::forward<T>(args)...);
     }
 
+    template<typename ...T>
+    auto union_all( T &&...args )
+    {
+        return sql::union_all<factory_t>(std::forward<T>(args)...);
+    }
+
     template<typename T>
     void create_table()
     {
@@ -516,83 +523,100 @@ namespace
         }
     }
 
+    using namespace sql;
 
-    template<typename T>
-    using select_t = decltype(database::select(T::id, T::tag, T::value).template from<database::tables::DataSet>().template left_join<T>(T::dataset == database::tables::DataSet::id));
+    using integer_t = sql::default_column<std::ptrdiff_t, decltype("0 as integer_value"_s)>;
+    using real_t = sql::default_column<double, decltype("0 as float_value"_s)>;
+    using text_t = sql::default_column<std::string_view, decltype("NULL as text_value"_s)>;
 
-    template<typename T>
-    void print( const std::ptrdiff_t dataset_id, const std::size_t level )
+    template<typename T, typename Column>
+    constexpr auto get_column_if( const Column & )
     {
-        using namespace database::tables;
-
-        std::string pad = "";
-        for ( std::size_t index = 0; index < level; index++ )
+        if constexpr (std::is_same_v<typename Column::type_t, typename T::type_t>)
         {
-            pad += "\t";
+            return Column();
         }
-
-        for (const auto [id, tag, value] : select_t<T>().where(DataSet::id == dataset_id))
+        else
         {
-            std::cout << pad << dataset_id << " " << typename T::name_t().view() << " " << id << " tag: " << tag << " value: " << value << std::endl;
+            return T();
         }
     }
+
+    template<typename Table>
+    constexpr auto get_table_name()
+    {
+        using name_t = typename Table::name_t;
+        return sql::default_column<std::string_view, decltype("\""_s + name_t() + "\" as table_name"_s)>();
+    }
+
+    template<typename T>
+    using select_t = decltype(database::select(T::id, T::tag, get_table_name<T>(), get_column_if<integer_t>(T::value), get_column_if<real_t>(T::value), get_column_if<text_t>(T::value)).template from<database::tables::DataSet>().template left_join<T>(T::dataset == database::tables::DataSet::id));
 
     template<typename ... T>
     void print2(const std::ptrdiff_t dataset_id, const std::size_t level = 0)
     {
         using namespace database::tables;
-        const auto query = ((select_t<T>().where(DataSet::id == dataset_id).Union()) + ... );
+
+        for (const auto [id, tag, table_name, integer_value, real_value, text_value] : database::union_all( select_t<T>().where(DataSet::id == dataset_id) ... ))
+        {
+            std::cout << std::setw(level*4) << std::setfill(' ') << " "
+                      << "dataset: " << dataset_id
+                      << " table: " << table_name
+                      << " id: " << id
+                      << " tag: " << std::hex << std::setw(8) << std::setfill('0') << tag
+                      << " values: [" << integer_value << "|" << real_value << "|" << text_value.substr(0, std::min<std::size_t>(text_value.size(), 100l)) << "]"
+                      << std::endl;
+
+        }
     }
 
-    void print( const std::ptrdiff_t id, const std::size_t level = 0 )
+    void print( const std::ptrdiff_t dataset_id, const std::size_t level = 0 )
     {
         using namespace database::tables;
 
-        std::string pad = "";
-        for ( std::size_t index = 0; index < level; index++ )
-        {
-            pad += "\t";
-        }
+        print2<  AE
+               , AS
+               , AT
+               , OB
+               , OW
+               , OF
+               , OD
+               , UT
+               , UN
+               , UL
+               , US
+               , SS
+               , SL
+               , FD
+               , FL
+               , DA
+               , UI
+               , SH
+               , TM
+               , UC
+               , UR
+               , DT
+               , DS
+               , CS
+               , IS
+               , LT
+               , OL
+               , PN
+               , ST
+               , LO>(dataset_id, level);
 
-        print2<AE, AS>(id, level);
-
-        print<AE>(id, level);
-        print<AS>(id, level);
-        print<AT>(id, level);
-        print<OB>(id, level);
-        print<OW>(id, level);
-        print<OF>(id, level);
-        print<OD>(id, level);
-        print<UT>(id, level);
-        print<UN>(id, level);
-        print<UL>(id, level);
-        print<US>(id, level);
-        print<SS>(id, level);
-        print<SL>(id, level);
-        print<FD>(id, level);
-        print<FL>(id, level);
-        print<DA>(id, level);
-        print<UI>(id, level);
-        print<SH>(id, level);
-        print<TM>(id, level);
-        print<UC>(id, level);
-        print<UR>(id, level);
-        print<DT>(id, level);
-        print<DS>(id, level);
-        print<CS>(id, level);
-        print<IS>(id, level);
-        print<LT>(id, level);
-        print<OL>(id, level);
-        print<PN>(id, level);
-        print<ST>(id, level);
-        print<LO>(id, level);
-
-        for ( const auto [tag, value] : database::select(SQ::tag, SQ::value)
+        for ( const auto [id, tag, value] : database::select(SQ::id, SQ::tag, SQ::value)
               .from<DataSet>()
               .left_join<SQ>(SQ::dataset == DataSet::id)
-              .where(DataSet::id == id))
+              .where(DataSet::id == dataset_id))
         {
-            std::cout << pad << id << " SQ tag: " << tag << " value: " << value << std::endl;
+            std::cout << std::setw(level*4) << std::setfill(' ') << " "
+                      << "dataset: " << dataset_id
+                      << " table: SQ"
+                      << " id: " << id
+                      << " tag: " << std::hex << std::setw(8) << std::setfill('0') << tag
+                      << " sub-dataset: " << value
+                      << std::endl;
             print(value, level + 1);
         }
     }
