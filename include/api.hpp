@@ -330,10 +330,10 @@ namespace sql
         }
     }
 
-    template<typename ...T, std::size_t ...I>
+    template<typename SEP = decltype(", "_s), typename ...T, std::size_t ...I>
     constexpr auto join( const std::tuple<T...> &tup, std::index_sequence<I...> )
     {
-        return (format<decltype(", "_s), sizeof ... (T), I>(std::get<I>(tup)) + ... + ""_s );
+        return (format<SEP, sizeof ... (T), I>(std::get<I>(tup)) + ... + ""_s );
     }
 
     template<typename SEP, typename ...T, std::size_t ...I>
@@ -848,7 +848,7 @@ namespace sql
     auto union_all( First &&first, Last &&...last )
     {
         auto data = std::tuple_cat(first.data(), last.data() ... );
-        const constexpr auto query = join2<decltype(" UNION ALL "_s)>(std::make_tuple(first.to_string(), last.to_string() ... ), std::make_index_sequence<1 + sizeof ... (Last)>());
+        const constexpr auto query = join<decltype(" UNION ALL "_s)>(std::make_tuple(first.to_string(), last.to_string() ... ), std::make_index_sequence<1 + sizeof ... (Last)>());
         return impl::Union_all<FACTORY, decltype(query), decltype(data), typename First::iterator_t>(std::move(data));
     }
 
