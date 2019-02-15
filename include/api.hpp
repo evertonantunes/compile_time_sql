@@ -837,4 +837,10 @@ namespace sql
     {
         impl::create_table<Factory, Table>(typename Table::columns());
     }
+
+    template<typename T>
+    constexpr auto count( )
+    {
+        return default_column<std::ptrdiff_t, decltype(" COUNT("_s  + T::to_string() + ") "_s)>();
+    }
 }

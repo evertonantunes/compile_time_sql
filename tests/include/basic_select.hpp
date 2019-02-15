@@ -4,27 +4,28 @@
 #include <algorithm>
 #include "sample_database.hpp"
 
+using desctiptions_t = database::tables::Desctiptions;
+using users_t = database::tables::Users;
+
 class Fixture
 {
 public:
     Fixture()
     {
-        using strings_t = database::tables::strings;
-        using users_t = database::tables::users;
 
-        database::create_table<strings_t>();
+        database::create_table<desctiptions_t>();
         database::create_table<users_t>();
 
-        database::insert_into<users_t>(   users_t::first_name = database::insert_into<strings_t>(strings_t::text = "Blaise")
-                                        , users_t::second_name = database::insert_into<strings_t>(strings_t::text = "Pascal")
+        database::insert_into<users_t>(   users_t::first_name = database::insert_into<desctiptions_t>(desctiptions_t::text = "Blaise")
+                                        , users_t::second_name = database::insert_into<desctiptions_t>(desctiptions_t::text = "Pascal")
                                         , users_t::age = 39l );
 
-        database::insert_into<users_t>(   users_t::first_name = database::insert_into<strings_t>(strings_t::text = "Leonhard")
-                                        , users_t::second_name = database::insert_into<strings_t>(strings_t::text = "Euler")
+        database::insert_into<users_t>(   users_t::first_name = database::insert_into<desctiptions_t>(desctiptions_t::text = "Leonhard")
+                                        , users_t::second_name = database::insert_into<desctiptions_t>(desctiptions_t::text = "Euler")
                                         , users_t::age = 76l );
 
-        database::insert_into<users_t>(   users_t::first_name = database::insert_into<strings_t>(strings_t::text = "Robert")
-                                        , users_t::second_name = database::insert_into<strings_t>(strings_t::text = "Hooke")
+        database::insert_into<users_t>(   users_t::first_name = database::insert_into<desctiptions_t>(desctiptions_t::text = "Robert")
+                                        , users_t::second_name = database::insert_into<desctiptions_t>(desctiptions_t::text = "Hooke")
                                         , users_t::age = 67l );
     }
 
@@ -52,9 +53,9 @@ namespace
     }
 }
 
-TEST_CASE_METHOD(Fixture, "Select basic", "[select]")
+TEST_CASE_METHOD(Fixture, "Validate inserts", "[select][sum]")
 {
-    const auto rows = database::select(database::tables::users::id).from<database::tables::users>().where(database::tables::users::age == 39l);
+    const auto rows = database::select(database::count(users_t::id)).from<users_t>();
 
     auto it = std::begin(rows);
 
@@ -63,14 +64,53 @@ TEST_CASE_METHOD(Fixture, "Select basic", "[select]")
     }
 
     SECTION( "check result type is expected" ) {
-        REQUIRE( validate_column_type(database::tables::users::age, std::get<0>(*it)) );
+        REQUIRE( std::is_same_v<std::ptrdiff_t, decltype(std::get<0>(*it))> );
     }
 
-    SECTION( "item is expected" ) {
-        REQUIRE( std::get<0>(*it) == 1l );
+    SECTION( "verify count result" ) {
+        const auto tmp = std::get<0>(*it);
+        REQUIRE( tmp == 3l );
     }
 
     SECTION( "next element is end" ) {
+        ++it;
+        REQUIRE( it == std::end(rows) );
+    }
+}
+
+
+TEST_CASE_METHOD(Fixture, "Select basic", "[select][all]")
+{
+    const auto rows = database::select(users_t::id).from<users_t>();
+
+    auto it = std::begin(rows);
+
+    SECTION( "has item" ) {
+        REQUIRE( it != std::end(rows) );
+    }
+
+    SECTION( "check result type is expected" ) {
+        REQUIRE( validate_column_type(users_t::age, std::get<0>(*it)) );
+    }
+
+    /*SECTION( "item is expected 1" ) */{
+        const auto tmp = std::get<0>(*it);
+        REQUIRE( tmp == 1l );
+    }
+
+    /*SECTION( "item is expected 2" ) */{
+        ++it;
+        const auto tmp = std::get<0>(*it);
+        REQUIRE( tmp == 2l );
+    }
+
+    /*SECTION( "item is expected 3" ) */{
+        ++it;
+        const auto tmp = std::get<0>(*it);
+        REQUIRE( tmp == 3l );
+    }
+
+    /*SECTION( "next element is end" )*/ {
         ++it;
         REQUIRE( it == std::end(rows) );
     }

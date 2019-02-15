@@ -12,20 +12,20 @@ namespace database
     {
         using namespace sql;
 
-        struct strings : public Table<decltype("strings"_s)>
+        struct Desctiptions : public Table<decltype("strings"_s)>
         {
-            static constexpr Column<strings, decltype("id"_s)  , std::ptrdiff_t  , Flags<pk, not_null>> id   = {};
-            static constexpr Column<strings, decltype("text"_s), std::string_view, Flags<not_null>    > text = {};
+            static constexpr Column<Desctiptions, decltype("id"_s)  , std::ptrdiff_t  , Flags<pk, not_null>> id   = {};
+            static constexpr Column<Desctiptions, decltype("text"_s), std::string_view, Flags<not_null>    > text = {};
 
             using columns = std::tuple<decltype(id), decltype(text)>; // future introspection
         };
 
-        struct users : public Table<decltype("users"_s)>
+        struct Users : public Table<decltype("users"_s)>
         {
-            static constexpr Column<users, decltype("id"_s)         , std::ptrdiff_t, Flags<pk, not_null>> id          = {};
-            static constexpr Column<users, decltype("first_name"_s) , std::ptrdiff_t, Flags<not_null>> first_name  = {};
-            static constexpr Column<users, decltype("second_name"_s), std::ptrdiff_t, Flags<not_null>> second_name = {};
-            static constexpr Column<users, decltype("age"_s)        , std::ptrdiff_t, Flags<not_null>    > age         = {};
+            static constexpr Column<Users, decltype("id"_s)         , std::ptrdiff_t, Flags<pk, not_null>>                        id          = {};
+            static constexpr Column<Users, decltype("first_name"_s) , std::ptrdiff_t, Flags<fk<decltype(Desctiptions::id)>, not_null>> first_name  = {};
+            static constexpr Column<Users, decltype("second_name"_s), std::ptrdiff_t, Flags<fk<decltype(Desctiptions::id)>, not_null>> second_name = {};
+            static constexpr Column<Users, decltype("age"_s)        , std::ptrdiff_t, Flags<not_null>>                            age         = {};
 
             using columns = std::tuple<decltype(id), decltype(first_name), decltype(second_name), decltype(age)>; // future introspection
         };
@@ -41,6 +41,18 @@ namespace database
     auto insert_into( T &&...args )
     {
         return sql::insert_into<factory_t, H>(std::forward<T>(args)...);
+    }
+
+    template<typename T>
+    auto count( const T & )
+    {
+        return sql::count<T>();
+    }
+
+    template<typename ...T>
+    auto union_all( T &&...args )
+    {
+        return sql::union_all<factory_t>(std::forward<T>(args)...);
     }
 
     template<typename T>
