@@ -12,10 +12,10 @@ namespace database
     {
         using namespace sql;
 
-        struct Desctiptions : public Table<decltype("strings"_s)>
+        struct Descriptions : public Table<decltype("descriptions"_s)>
         {
-            static constexpr Column<Desctiptions, decltype("id"_s)  , std::ptrdiff_t  , Flags<pk, not_null>> id   = {};
-            static constexpr Column<Desctiptions, decltype("text"_s), std::string_view, Flags<not_null>    > text = {};
+            static constexpr Column<Descriptions, decltype("id"_s)  , std::ptrdiff_t  , Flags<pk, not_null>> id   = {};
+            static constexpr Column<Descriptions, decltype("text"_s), std::string_view, Flags<not_null>    > text = {};
 
             using columns = std::tuple<decltype(id), decltype(text)>; // future introspection
         };
@@ -23,8 +23,8 @@ namespace database
         struct Users : public Table<decltype("users"_s)>
         {
             static constexpr Column<Users, decltype("id"_s)         , std::ptrdiff_t, Flags<pk, not_null>>                        id          = {};
-            static constexpr Column<Users, decltype("first_name"_s) , std::ptrdiff_t, Flags<fk<decltype(Desctiptions::id)>, not_null>> first_name  = {};
-            static constexpr Column<Users, decltype("second_name"_s), std::ptrdiff_t, Flags<fk<decltype(Desctiptions::id)>, not_null>> second_name = {};
+            static constexpr Column<Users, decltype("first_name"_s) , std::ptrdiff_t, Flags<fk<decltype(Descriptions::id)>, not_null>> first_name  = {};
+            static constexpr Column<Users, decltype("second_name"_s), std::ptrdiff_t, Flags<fk<decltype(Descriptions::id)>, not_null>> second_name = {};
             static constexpr Column<Users, decltype("age"_s)        , std::ptrdiff_t, Flags<not_null>>                            age         = {};
 
             using columns = std::tuple<decltype(id), decltype(first_name), decltype(second_name), decltype(age)>; // future introspection

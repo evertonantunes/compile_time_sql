@@ -328,7 +328,7 @@ namespace sql
         }
     }
 
-    template<typename SEP = decltype(", "_s), typename ...T, std::size_t ...I>
+    template<typename SEP = decltype(","_s), typename ...T, std::size_t ...I>
     constexpr auto join( const std::tuple<T...> &tup, std::index_sequence<I...> )
     {
         return (format<SEP, sizeof ... (T), I>(std::get<I>(tup)) + ... + ""_s );
@@ -529,7 +529,7 @@ namespace sql
 
             static constexpr auto to_string( )
             {
-                return T::to_string() + "WHERE "_s + WHERE::to_string();
+                return T::to_string() + " WHERE "_s + WHERE::to_string();
             }
 
             auto data() const
@@ -540,7 +540,9 @@ namespace sql
             auto create_statement() const
             {
                 static const constexpr auto text = to_string();
-                return ConnectionFactory::make_context(text.c_str(), text.size(), m_where.data());
+                auto context = ConnectionFactory::make_context(text.c_str(), text.size());
+                ConnectionFactory::bind(context, m_where.data());
+                return context;
             }
 
             iterator_t begin() const
@@ -554,18 +556,18 @@ namespace sql
             }
         };
 
-        template<typename StringType, typename Table, typename EXP>
+        template<typename JoinType, typename Table, typename EXP>
         struct Join
         {
             static constexpr auto to_string( )
             {
                 if constexpr (is_alias(Table()))
                 {
-                    return StringType() + typename Table::name_t() + " as "_s + typename Table::alias_t() + " ON "_s + EXP::to_string() + " "_s;
+                    return " "_s + JoinType() + typename Table::name_t() + " as "_s + typename Table::alias_t() + " ON "_s + EXP::to_string();
                 }
                 else
                 {
-                    return StringType() + typename Table::name_t() + " ON "_s + EXP::to_string() + " "_s;
+                    return " "_s + JoinType() + typename Table::name_t() + " ON "_s + EXP::to_string();
                 }
             }
         };
@@ -600,7 +602,7 @@ namespace sql
             auto create_statement() const
             {
                 static const constexpr auto text = to_string();
-                return ConnectionFactory::make_context(text.c_str(), text.size(), std::tuple<>{});
+                return ConnectionFactory::make_context(text.c_str(), text.size());
             }
 
             iterator_t begin() const
@@ -621,11 +623,11 @@ namespace sql
             {
                 if constexpr (is_alias(T()))
                 {
-                    return "FROM "_s + typename T::name_t() + " as "_s + typename T::alias_t() + " "_s;
+                    return "FROM "_s + typename T::name_t() + " as "_s + typename T::alias_t();
                 }
                 else
                 {
-                    return "FROM "_s + typename T::name_t() + " "_s;
+                    return "FROM "_s + typename T::name_t();
                 }
             }
         };
@@ -639,7 +641,7 @@ namespace sql
             static constexpr auto to_string( )
             {
                 return   "SELECT "_s
-                       + join(std::make_tuple(T::to_string() ... ), std::make_index_sequence<sizeof ... (T)>())
+                       + join<decltype(", "_s)>(std::make_tuple(T::to_string() ... ), std::make_index_sequence<sizeof ... (T)>())
                        + " "_s;
             }
 
@@ -674,7 +676,8 @@ namespace sql
             auto run() const
             {                
                 const constexpr auto text = to_string();
-                auto context = FACTORY::make_context(text.c_str(), text.size(), std::move(m_data));
+                auto context = FACTORY::make_context(text.c_str(), text.size());
+                FACTORY::bind(context, m_data);
                 std::tuple<> tp;
                 next(context, tp);
                 return FACTORY::get_last_insert_id();
@@ -841,6 +844,6 @@ namespace sql
     template<typename T>
     constexpr auto count( )
     {
-        return default_column<std::ptrdiff_t, decltype(" COUNT("_s  + T::to_string() + ") "_s)>();
+        return default_column<std::ptrdiff_t, decltype("COUNT("_s  + T::to_string() + ")"_s)>();
     }
 }

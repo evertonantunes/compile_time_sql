@@ -110,18 +110,25 @@ namespace database
 
         struct Context
         {
-            sqlite3_stmt *m_stmt;
-            const char *m_sql;
+            sqlite3_stmt *m_stmt = nullptr;
+            const char *m_sql = nullptr;
             int m_error_code = SQLITE_DONE;
 
             Context( )
-                : m_stmt(nullptr)
-                , m_error_code(SQLITE_DONE)
             { }
 
+            Context( Context &&other )
+                : m_stmt(other.m_stmt)
+                , m_sql(other.m_sql)
+                , m_error_code(other.m_error_code)
+            {
+                other.m_stmt = nullptr;
+                other.m_sql = nullptr;
+                other.m_error_code = SQLITE_DONE;
+            }
+
             Context( sqlite3 *connection, const char *sql, const std::size_t size )
-                : m_stmt(nullptr)
-                , m_sql(sql)
+                : m_sql(sql)
             {
                 m_error_code = sqlite3_prepare_v2(connection, sql, size, &m_stmt, NULL);
                 if (m_error_code != SQLITE_OK)
@@ -134,7 +141,7 @@ namespace database
             {
                 if (m_stmt)
                 {
-                  //  sqlite3_finalize(m_stmt);
+                    sqlite3_finalize(m_stmt);
                 }
             }
         };
@@ -208,12 +215,16 @@ namespace database
                 return sqlite3_last_insert_rowid(instance()->m_database_connection);
             }
 
-            template<typename T>
-            static context_t make_context( const char *sql, const std::size_t size , T &&data )
+            static context_t make_context( const char *sql, const std::size_t size )
             {
                 context_t result(instance()->m_database_connection, sql, size);
-                set::bind(result, data);
                 return result;
+            }
+
+            template<typename T>
+            static void bind( context_t &context, const T &data )
+            {
+                set::bind(context, data);
             }
         };
     }
