@@ -563,7 +563,7 @@ namespace sql
             {
                 if constexpr (is_alias(Table()))
                 {
-                    return " "_s + JoinType() + typename Table::name_t() + " as "_s + typename Table::alias_t() + " ON "_s + EXP::to_string();
+                    return " "_s + JoinType() + typename Table::name_t() + " AS "_s + typename Table::alias_t() + " ON "_s + EXP::to_string();
                 }
                 else
                 {
@@ -623,7 +623,7 @@ namespace sql
             {
                 if constexpr (is_alias(T()))
                 {
-                    return "FROM "_s + typename T::name_t() + " as "_s + typename T::alias_t();
+                    return "FROM "_s + typename T::name_t() + " AS "_s + typename T::alias_t();
                 }
                 else
                 {
