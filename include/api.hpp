@@ -583,7 +583,7 @@ namespace sql
             using this_t = SelectFrom<SELECT, FROM, JOIN...>;
 
             template<typename T>
-            static constexpr auto where( T &&expression )
+            auto where( T &&expression )
             {
                 return SelectFromWHERE<this_t, T>(std::move(expression));
             }
@@ -800,7 +800,9 @@ namespace sql
             auto create_statement() const
             {
                 static const constexpr auto text = to_string();
-                return FACTORY::make_context(text.c_str(), text.size(), data());
+                auto context = FACTORY::make_context(text.c_str(), text.size());
+                FACTORY::bind(context, data());
+                return context;
             }
 
             Iterator begin() const
