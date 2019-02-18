@@ -77,7 +77,7 @@ TEST_CASE("validate select filds SQL LEFT JOIN", "[validate][select][count][left
     const auto context = my_select_t();
     const auto sql = context.to_string().view();
 
-    REQUIRE(sql == "SELECT users.id, f_name.text, s_name.text, users.age FROM users LEFT JOIN descriptions as f_name ON f_name.id == users.first_name LEFT JOIN descriptions as s_name ON s_name.id == users.second_name");
+    REQUIRE(sql == "SELECT users.id, f_name.text, s_name.text, users.age FROM users LEFT JOIN descriptions AS f_name ON f_name.id == users.first_name LEFT JOIN descriptions AS s_name ON s_name.id == users.second_name");
 }
 
 TEST_CASE("validate select filds SQL LEFT JOIN WHERE", "[validate][select][count][left-join][where]")
@@ -94,7 +94,6 @@ TEST_CASE("validate select filds SQL LEFT JOIN WHERE", "[validate][select][count
     const auto sql = context.to_string().view();
     const auto data = context.data();
 
-    REQUIRE(sql == "SELECT users.id, f_name.text, s_name.text, users.age FROM users LEFT JOIN descriptions as f_name ON f_name.id == users.first_name LEFT JOIN descriptions as s_name ON s_name.id == users.second_name WHERE users.age == ?");
+    REQUIRE(sql == "SELECT users.id, f_name.text, s_name.text, users.age FROM users LEFT JOIN descriptions AS f_name ON f_name.id == users.first_name LEFT JOIN descriptions AS s_name ON s_name.id == users.second_name WHERE users.age == ?");
     REQUIRE(data == std::make_tuple(39l));
 }
-

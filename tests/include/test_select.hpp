@@ -40,7 +40,7 @@ namespace
     template<typename T, typename H>
     constexpr bool is_same()
     {
-        static_assert(std::is_same<T, H>::value, "required same types");
+        static_assert((std::is_same<T, H>::value), "required same types");
         return true;
     }
 

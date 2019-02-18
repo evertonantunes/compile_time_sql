@@ -1,5 +1,6 @@
 #pragma once
 
+#include "exceptionalized_static_assert.hpp"
 #include "../include/api.hpp"
 #include "../include/sqlite_factory.hpp"
 

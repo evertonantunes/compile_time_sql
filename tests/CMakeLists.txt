@@ -23,6 +23,8 @@ if (UNIX AND NOT APPLE)
     LIST(INSERT Project_LIBRARIES 0 -lasan)
 endif()
 
+ADD_DEFINITIONS(-DTEST__EXCEPTIONALIZE_STATIC_ASSERT=1)
+
 #add project files
 file(GLOB_RECURSE SOURCES source/*.cpp)
 file(GLOB_RECURSE HEADERS include/*.hpp)

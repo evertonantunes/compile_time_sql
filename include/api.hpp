@@ -373,17 +373,17 @@ namespace sql
 
             if constexpr (std::is_same<const char*, VALUE>::value)
             {
-                static_assert(std::is_same_v<type_t, std::string> || std::is_same_v<type_t, std::string_view>, "Parameter type does not compatible");
+                static_assert((std::is_same_v<type_t, std::string> || std::is_same_v<type_t, std::string_view>), "Parameter type does not compatible");
                 return Comparation<OP, this_t, std::string_view>(std::string_view(value));
             }
             else if constexpr (std::is_same_v<std::string, VALUE>)
             {
-                static_assert(std::is_same_v<type_t, std::string> || std::is_same_v<type_t, std::string_view>, "Parameter type does not compatible");
+                static_assert((std::is_same_v<type_t, std::string> || std::is_same_v<type_t, std::string_view>), "Parameter type does not compatible");
                 return Comparation<OP, this_t, const std::string&>(value);
             }
             else
             {
-                static_assert(std::is_same<type_t, VALUE>::value, "Parameter type does not compatible");
+                static_assert((std::is_same<type_t, VALUE>::value), "Parameter type does not compatible");
                 return Comparation<OP, this_t, VALUE>(value);
             }
         }
@@ -391,20 +391,21 @@ namespace sql
         template< typename OP, typename _Table, typename _NameString, typename _Type, typename _Flags>
         inline auto make_operation( const Column<_Table, _NameString, _Type, _Flags> &value ) const
         {
-            static_assert(std::is_same<type_t, _Type>::value, "Parameter type does not compatible");
+            static_assert((std::is_same<type_t, _Type>::value), "Parameter type does not compatible");
             using other_t = Column<_Table, _NameString, _Type, _Flags>;
             return operators::comparation::TypeComparation<OP, this_t, other_t>();
         }
 
         inline auto operator =( const char *value ) const
         {
+            static_assert((std::is_same_v<type_t, std::string> || std::is_same_v<type_t, std::string_view>), "Parameter type does not compatible");
             return assign::Value<this_t, std::string_view>(std::string_view(value));
         }
 
         template< typename VALUE >
         inline auto operator =( const VALUE &value ) const
         {
-            static_assert(std::is_same<type_t, VALUE>::value, "Parameter type does not compatible");
+            static_assert((std::is_same<type_t, VALUE>::value), "Parameter type does not compatible");
             return assign::Value<this_t, VALUE>(value);
         }
 
