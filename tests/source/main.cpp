@@ -2,4 +2,10 @@
 
 #include <catch2/catch.hpp>
 
-#include "include/basic_select.hpp"
+
+#include "include/test_insert_parameter_assing.hpp"
+#include "include/test_where_parameter.hpp"
+
+#include "include/test_select_generated.hpp"
+
+#include "include/test_select.hpp"

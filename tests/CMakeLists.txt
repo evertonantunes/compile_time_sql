@@ -10,6 +10,7 @@ if (UNIX AND NOT APPLE)
         -lpthread
         -lrt
     )
+    ADD_DEFINITIONS(-Werror)
     ADD_DEFINITIONS(-Wdouble-promotion)
     ADD_DEFINITIONS(-Wmaybe-uninitialized)
     ADD_DEFINITIONS(-Werror=return-type)
@@ -21,6 +22,8 @@ if (UNIX AND NOT APPLE)
     ADD_DEFINITIONS(-fno-omit-frame-pointer)
     LIST(INSERT Project_LIBRARIES 0 -lasan)
 endif()
+
+ADD_DEFINITIONS(-DTEST__EXCEPTIONALIZE_STATIC_ASSERT=1)
 
 #add project files
 file(GLOB_RECURSE SOURCES source/*.cpp)

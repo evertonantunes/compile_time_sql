@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/evertonantunes/compile_time_sql.svg?branch=master)](https://travis-ci.org/evertonantunes/compile_time_sql.svg?branch=master)
+
 
     conan install . --build=missing
     cmake CMakeLists.txt
