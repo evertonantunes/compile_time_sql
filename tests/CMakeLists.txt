@@ -37,10 +37,4 @@ target_link_libraries(${PROJECT_NAME} ${Project_LIBRARIES})
 conan_target_link_libraries(${PROJECT_NAME})
 
 enable_testing()
-add_test(MyTest ${PROJECT_NAME})
-
-add_custom_target( run_test
-                COMMAND  ${PROJECT_NAME} --reporter junit --out ${CMAKE_SOURCE_DIR}/report.xml
-                COMMENT "${PROJECT_NAME} --reporter junit --out ${CMAKE_SOURCE_DIR}/report.xml"
-                WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests
-                VERBATIM )
+add_test(NAME basic COMMAND  ${PROJECT_NAME} --reporter junit --out ${CMAKE_SOURCE_DIR}/report.xml )
