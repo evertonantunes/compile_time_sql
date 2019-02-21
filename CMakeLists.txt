@@ -17,8 +17,8 @@ FILE(GLOB_RECURSE HEADERS RELATIVE ${CMAKE_SOURCE_DIR} ${INCLUDE_DIR}/*.hpp)
 
 #ADD_DEFINITIONS(-fsanitize=address)
 #ADD_DEFINITIONS(-fno-omit-frame-pointer)
-ADD_DEFINITIONS(-O3)
-SET(CMAKE_BUILD_TYPE "Release")
+ADD_DEFINITIONS(-O0)
+SET(CMAKE_BUILD_TYPE "Debug")
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 target_link_libraries(${PROJECT_NAME} )#-lasan
