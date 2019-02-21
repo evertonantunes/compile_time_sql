@@ -91,9 +91,12 @@ int main()
         .left_join<f_name>(f_name::as(strings_t::id) == users_t::first_name)
         .left_join<s_name>(s_name::as(strings_t::id) == users_t::second_name));
 
-    for ( const auto [id, first_name, second_name, age] : my_select_t().where(users_t::age == 39l || users_t::age > 70l))
+    for ( int x = 0; x < 10000; x++ )
     {
-        std::cout << "id: " << id << " first_name: " << first_name << " second_name: " << second_name << " age: " << age << std::endl;
+        for ( const auto [id, first_name, second_name, age] : my_select_t().where(users_t::age == 39l || users_t::age > 70l))
+        {
+            std::cout << "id: " << id << " first_name: " << first_name << " second_name: " << second_name << " age: " << age << std::endl;
+        }
     }
 
     for ( const auto [id, first_name, second_name, age] : database::select(  users_t::id

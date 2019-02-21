@@ -24,7 +24,7 @@ add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 target_link_libraries(${PROJECT_NAME} )#-lasan
 conan_target_link_libraries(${PROJECT_NAME})
 
-enable_testing()
+add_subdirectory(benchmark)
 add_subdirectory(tests)
-
+enable_testing()
 
