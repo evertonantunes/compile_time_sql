@@ -1,4 +1,4 @@
-project(benchamrk_select)
+project(sql_benchamrk)
 cmake_minimum_required(VERSION 2.6)
 
 SET(CMAKE_CXX_STANDARD 17)
