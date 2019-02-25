@@ -2,8 +2,7 @@
 
 #include <sqlite3.h>
 #include <stdexcept>
-#include <cassert>
-
+#include <thread>
 
 namespace database
 {
@@ -44,6 +43,7 @@ namespace database
             void bind( CONTEXT &context, const std::size_t index, const T value )
             {
                 auto rc = SQLITE_OK;
+
                 if constexpr (std::is_same_v<std::string, T>)
                 {
                     rc = sqlite3_bind_text(context.m_stmt, index, value.data(), value.size(), nullptr);
@@ -56,7 +56,11 @@ namespace database
                 {
                     rc = sqlite3_bind_int64(context.m_stmt, index, value);
                 }
-                assert(rc == SQLITE_OK);
+
+                if (rc != SQLITE_OK)
+                {
+                    throw SQLiteError(context.m_connection, rc, context.m_sql);
+                }
             }
 
             template<typename CONTEXT, class TupType, size_t... I>
@@ -77,7 +81,6 @@ namespace database
             template<typename CONTEXT, typename T>
             void bind( CONTEXT &context, const std::size_t index, T &value )
             {
-                auto rc = SQLITE_OK;
                 if constexpr (std::is_same_v<std::string, T>)
                 {
                     const unsigned char *data = sqlite3_column_text(context.m_stmt, index);
@@ -92,7 +95,11 @@ namespace database
                 {
                     value = sqlite3_column_int64(context.m_stmt, index);
                 }
-                assert(rc == SQLITE_OK);
+
+//                if (sqlite3_errcode(context.m_connection) != SQLITE_OK)
+//                {
+//                    throw SQLiteError(context.m_connection, sqlite3_errcode(context.m_connection), context.m_sql);
+//                }
             }
 
             template<typename CONTEXT, class TupType, size_t... I>
@@ -110,6 +117,7 @@ namespace database
 
         struct Context
         {
+            sqlite3 *m_connection = nullptr;
             sqlite3_stmt *m_stmt = nullptr;
             const char *m_sql = nullptr;
             int m_error_code = SQLITE_DONE;
@@ -118,22 +126,25 @@ namespace database
             { }
 
             Context( Context &&other )
-                : m_stmt(other.m_stmt)
+                : m_connection(other.m_connection)
+                , m_stmt(other.m_stmt)
                 , m_sql(other.m_sql)
                 , m_error_code(other.m_error_code)
             {
+                other.m_connection = nullptr;
                 other.m_stmt = nullptr;
                 other.m_sql = nullptr;
                 other.m_error_code = SQLITE_DONE;
             }
 
             Context( sqlite3 *connection, const char *sql, const std::size_t size )
-                : m_sql(sql)
+                : m_connection(connection)
+                , m_sql(sql)
             {
-                m_error_code = sqlite3_prepare_v2(connection, sql, size, &m_stmt, NULL);
+                m_error_code = sqlite3_prepare_v2(m_connection, sql, size, &m_stmt, NULL);
                 if (m_error_code != SQLITE_OK)
                 {
-                    throw SQLiteError(connection, m_error_code, std::string_view(m_sql, size));
+                    throw SQLiteError(m_connection, m_error_code, std::string_view(m_sql, size));
                 }
             }
 
@@ -149,22 +160,31 @@ namespace database
         template<class ... T>
         void next( Context &context, std::tuple<T...> &data )
         {
-            context.m_error_code = sqlite3_step(context.m_stmt);
-            switch (context.m_error_code)
+            while (true)
             {
-                case SQLITE_ROW:
+                context.m_error_code = sqlite3_step(context.m_stmt);
+                switch (context.m_error_code)
                 {
-                    if constexpr (std::tuple_size<std::tuple<T...>>::value != 0)
+                    case SQLITE_ROW:
                     {
-                        get::bind(context, data);
+                        if constexpr (std::tuple_size<std::tuple<T...>>::value != 0)
+                        {
+                            get::bind(context, data);
+                        }
+                        return;
                     }
+                    break;
+                    case SQLITE_LOCKED:
+                    case SQLITE_BUSY:
+                        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                        continue;
+                    break;
+                    case SQLITE_DONE:
+                        return;
+                    default:
+                        throw std::runtime_error(sqlite3_errstr(context.m_error_code));
+                    break;
                 }
-                break;
-                case SQLITE_DONE:
-                    return;
-                default:
-                    throw std::runtime_error(sqlite3_errstr(context.m_error_code));
-                break;
             }
         }
 

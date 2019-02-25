@@ -1,6 +1,7 @@
 [requires]
 catch2/2.4.1@bincrafters/stable
 sqlite3/3.26.0@bincrafters/stable
+benchmark/1.4.2@eao/stable
 
 [options]
 sqlite3:shared=True
