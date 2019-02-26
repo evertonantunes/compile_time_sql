@@ -47,6 +47,12 @@ namespace database
         return sql::union_all<factory_t>(std::forward<T>(args)...);
     }
 
+    template<typename H, typename ...T>
+    void delete_from( T &&...args )
+    {
+        sql::delete_from<factory_t, H>(std::forward<T>(args)...);
+    }
+
     template<typename T>
     void create_table()
     {
@@ -92,7 +98,7 @@ int main()
         .left_join<s_name>(s_name::as(strings_t::id) == users_t::second_name));
 
 
-    std::cout << "sql: " << my_select_t().where(users_t::age == 39l || users_t::age > 70l).to_string().view() << std::endl;
+    //std::cout << "sql: " << my_select_t().where(users_t::age == 39l || users_t::age > 70l).to_string().view() << std::endl;
 
     for ( int x = 0; x < 1; x++ )
     {
@@ -101,6 +107,8 @@ int main()
             std::cout << "id: " << id << " first_name: " << first_name << " second_name: " << second_name << " age: " << age << std::endl;
         }
     }
+
+    database::delete_from<users_t>( users_t::id == 1l || users_t::age == 76l );
 
     for ( const auto [id, first_name, second_name, age] : database::select(  users_t::id
                                                                            , f_name::as(strings_t::text)
@@ -112,9 +120,6 @@ int main()
     {
         std::cout << "id: " << id << " first_name: " << first_name << " second_name: " << second_name << " age: " << age << std::endl;
     }
-
-
-
 
     return 0;
 }

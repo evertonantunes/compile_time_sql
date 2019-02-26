@@ -815,6 +815,30 @@ namespace sql
                 return Iterator();
             }
         };
+
+        template<typename FACTORY, typename TABLE, typename WHERE>
+        struct Delete_from
+        {
+            WHERE m_data;
+
+            Delete_from( WHERE &&data )
+                : m_data(std::move(data))
+            { }
+
+            static constexpr auto to_string( )
+            {
+                return "DELETE FROM "_s + typename TABLE::name_t() + " WHERE "_s + WHERE::to_string() + ";"_s;
+            }
+
+            void run() const
+            {
+                const constexpr auto text = to_string();
+                auto context = FACTORY::make_context(text.c_str(), text.size());
+                FACTORY::bind(context, m_data.data());
+                std::tuple<> tp;
+                next(context, tp);
+            }
+        };
     }
 
     template<typename F, typename ...T>
@@ -848,5 +872,11 @@ namespace sql
     constexpr auto count( )
     {
         return default_column<std::ptrdiff_t, decltype("COUNT("_s  + T::to_string() + ")"_s)>();
+    }
+
+    template<typename FACTORY, typename TABLE, typename WHERE>
+    void delete_from( WHERE &&where )
+    {
+        impl::Delete_from<FACTORY, TABLE, WHERE>(std::move(where)).run();
     }
 }
