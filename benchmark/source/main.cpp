@@ -14,7 +14,7 @@ using s_name = alias<descriptions_t, decltype("s_name"_s)>;
 class Fixture : public benchmark::Fixture
 {
 public:
-    void SetUp(const ::benchmark::State& state)
+    void SetUp(const ::benchmark::State& )
     {
         database::factory_t::instance()->execute("PRAGMA foreign_keys = ON;");
 
@@ -37,7 +37,7 @@ public:
         }
     }
 
-    void TearDown(const ::benchmark::State& state)
+    void TearDown(const ::benchmark::State& )
     {
         database::factory_t::instance()->reset();
     }

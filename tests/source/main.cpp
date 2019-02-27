@@ -9,3 +9,5 @@
 #include "include/test_select_generated.hpp"
 
 #include "include/test_select.hpp"
+
+#include "include/test_delete_op.hpp"

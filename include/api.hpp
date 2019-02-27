@@ -389,7 +389,7 @@ namespace sql
         }
 
         template< typename OP, typename _Table, typename _NameString, typename _Type, typename _Flags>
-        inline auto make_operation( const Column<_Table, _NameString, _Type, _Flags> &value ) const
+        inline auto make_operation( const Column<_Table, _NameString, _Type, _Flags> & ) const
         {
             static_assert((std::is_same<type_t, _Type>::value), "Parameter type does not compatible");
             using other_t = Column<_Table, _NameString, _Type, _Flags>;
@@ -830,13 +830,14 @@ namespace sql
                 return "DELETE FROM "_s + typename TABLE::name_t() + " WHERE "_s + WHERE::to_string() + ";"_s;
             }
 
-            void run() const
+            auto run() const
             {
                 const constexpr auto text = to_string();
                 auto context = FACTORY::make_context(text.c_str(), text.size());
                 FACTORY::bind(context, m_data.data());
                 std::tuple<> tp;
                 next(context, tp);
+                return FACTORY::get_changes();
             }
         };
     }
@@ -875,8 +876,8 @@ namespace sql
     }
 
     template<typename FACTORY, typename TABLE, typename WHERE>
-    void delete_from( WHERE &&where )
+    auto delete_from( WHERE &&where )
     {
-        impl::Delete_from<FACTORY, TABLE, WHERE>(std::move(where)).run();
+        return impl::Delete_from<FACTORY, TABLE, WHERE>(std::move(where)).run();
     }
 }
