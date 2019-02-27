@@ -1,18 +1,11 @@
 project(sql_benchamrk)
 cmake_minimum_required(VERSION 2.6)
 
-SET(CMAKE_CXX_STANDARD 17)
-
 if (UNIX AND NOT APPLE)
     SET(Project_LIBRARIES
         -lpthread
         -lrt
     )
-    ADD_DEFINITIONS(-Werror)
-    ADD_DEFINITIONS(-Wdouble-promotion)
-    ADD_DEFINITIONS(-Wmaybe-uninitialized)
-    ADD_DEFINITIONS(-Werror=return-type)
-
     SET(CMAKE_BUILD_TYPE Release)
     ADD_DEFINITIONS(-O3)
 endif()

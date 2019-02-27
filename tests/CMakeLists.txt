@@ -10,10 +10,6 @@ if (UNIX AND NOT APPLE)
         -lpthread
         -lrt
     )
-    ADD_DEFINITIONS(-Werror)
-    ADD_DEFINITIONS(-Wdouble-promotion)
-    ADD_DEFINITIONS(-Wmaybe-uninitialized)
-    ADD_DEFINITIONS(-Werror=return-type)
 
     SET(CMAKE_BUILD_TYPE Debug)
     ADD_DEFINITIONS(-O0)
