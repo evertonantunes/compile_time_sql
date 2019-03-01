@@ -1,6 +1,6 @@
 {
   "context": {
-    "date": "2019-03-01 14:50:59",
+    "date": "2019-03-01 14:52:07",
     "host_name": "everton-Latitude-7490",
     "executable": "../bin/sql_benchmark",
     "num_cpus": 8,
@@ -32,7 +32,7 @@
         "num_sharing": 8
       }
     ],
-    "load_avg": [1.17,1.12,1.68],
+    "load_avg": [1.23,1.16,1.66],
     "library_build_type": "release"
   },
   "benchmarks": [
@@ -40,27 +40,27 @@
       "name": "Fixture/BM_raw_select",
       "run_name": "Fixture/BM_raw_select",
       "run_type": "iteration",
-      "iterations": 608,
-      "real_time": 1.1143642598318893e+06,
-      "cpu_time": 1.1104273848684214e+06,
+      "iterations": 613,
+      "real_time": 1.1192324112107155e+06,
+      "cpu_time": 1.1192069200652530e+06,
       "time_unit": "ns"
     },
     {
       "name": "Fixture/BM_raw_select_reuse_stmt",
       "run_name": "Fixture/BM_raw_select_reuse_stmt",
       "run_type": "iteration",
-      "iterations": 568,
-      "real_time": 1.0309139630203071e+06,
-      "cpu_time": 1.0309057323943664e+06,
+      "iterations": 683,
+      "real_time": 1.0440384232443193e+06,
+      "cpu_time": 1.0440225739385068e+06,
       "time_unit": "ns"
     },
     {
       "name": "Fixture/BM_static_select",
       "run_name": "Fixture/BM_static_select",
       "run_type": "iteration",
-      "iterations": 696,
-      "real_time": 1.0567541838350610e+06,
-      "cpu_time": 1.0567096954022988e+06,
+      "iterations": 642,
+      "real_time": 1.0615012306006295e+06,
+      "cpu_time": 1.0614524641744550e+06,
       "time_unit": "ns"
     }
   ]
