@@ -1,25 +1,49 @@
+# -*- coding: utf-8 -*-
 import argparse
-import pandas as pd
 import matplotlib.pyplot as plt
+import json
+import os
 
-parser = argparse.ArgumentParser(description='Plot benchmark CSV')
-parser.add_argument('--input', type=str, help='CSV file')
+parser = argparse.ArgumentParser(description='Plot benchmark')
+parser.add_argument('--directory', type=str, help='CSV file')
 
 args = parser.parse_args()
 
-csv_data = pd.read_csv(args.input)
+data = {}
 
-groups = [ item for item in csv_data.groupby('name') ]
-labels = [ key for key, value in groups if not 'mean' in key and not 'median' in key and not 'stddev' in key ]
+if args.directory != '':
+    for file_name in os.listdir(args.directory):
+        raw = json.loads(open('{}/{}'.format(args.directory, file_name), 'r').read())
+
+        if not raw['context']['host_name'] in data:
+            data[raw['context']['host_name']] = {}
+
+        for benchmark in raw['benchmarks']:
+            if 'stddev' in benchmark['name'] or 'mean' in benchmark['name'] or 'median' in benchmark['name']:
+                continue
+
+            if not benchmark['name'] in data[raw['context']['host_name']]:
+                data[raw['context']['host_name']][benchmark['name']] = []
+            data[raw['context']['host_name']][benchmark['name']].append(benchmark)
+
+
+def get_cpu_time( value ):
+    if value['time_unit'] == 'ns':
+        return value['cpu_time'] / 10e-9
+    if value['time_unit'] == R'µs':
+        return value['cpu_time'] / 10e-6
+    if value['time_unit'] == 'ms':
+        return value['cpu_time'] / 10e-3
+    return value['cpu_time']
+
 
 hwnd = []
-for key, group in groups:
-    if key in labels:
-        x = group['real_time']
-        line, = plt.plot(x.tolist(), label=key)
+for host_name in data:
+    for group in data[host_name]:
+        cpu_time = [get_cpu_time(item) for item in data[host_name][group]]
+        line, = plt.plot(cpu_time, label=group)
         hwnd.append(line)
 
-plt.xticks([1, 500, 800], ["Teste1", "teste2", "teste3"])
 plt.legend(handles=hwnd)
 plt.show()
 

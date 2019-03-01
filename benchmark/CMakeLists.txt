@@ -14,10 +14,12 @@ endif()
 file(GLOB_RECURSE SOURCES source/*.cpp)
 file(GLOB_RECURSE HEADERS include/*.hpp)
 
+SET(OTHER_FILES ./plot.py)
+
 include_directories(${PROJECT_SOURCE_DIR})
 include_directories(include/)
 
-add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
+add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS} ${OTHER_FILES})
 
 target_link_libraries(${PROJECT_NAME} ${Project_LIBRARIES})
 conan_target_link_libraries(${PROJECT_NAME})
@@ -30,6 +32,9 @@ execute_process(COMMAND git rev-parse --verify HEAD
 SET(OUTPUT_FILE_PATH_NAME ${OUTPUT_FILE_PATH}/${OUTPUT_FILE_NAME})
 
 add_custom_target(run_benchmark ALL)
-add_custom_command(TARGET run_benchmark COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROJECT_NAME} --benchmark_format=json > ${OUTPUT_FILE_PATH_NAME})
+add_custom_command(TARGET run_benchmark COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROJECT_NAME} --benchmark_format=json --benchmark_repetitions=100 > ${OUTPUT_FILE_PATH_NAME})
 add_custom_command(TARGET run_benchmark COMMAND git add ${OUTPUT_FILE_PATH_NAME})
 add_custom_command(TARGET run_benchmark COMMAND git commit -m "add new benchmark report" ${OUTPUT_FILE_PATH_NAME})
+
+add_custom_target(plot_benchmark)
+add_custom_command(TARGET plot_benchmark COMMAND python ${PROJECT_SOURCE_DIR}/plot.py --directory=${OUTPUT_FILE_PATH})
