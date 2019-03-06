@@ -1,0 +1,400 @@
+{
+  "context": {
+    "date": "2019-03-06 11:51:03",
+    "host_name": "everton-Latitude-7490",
+    "executable": "../bin/sql_benchmark",
+    "num_cpus": 8,
+    "mhz_per_cpu": 4200,
+    "cpu_scaling_enabled": true,
+    "caches": [
+      {
+        "type": "Data",
+        "level": 1,
+        "size": 32000000,
+        "num_sharing": 2
+      },
+      {
+        "type": "Instruction",
+        "level": 1,
+        "size": 32000000,
+        "num_sharing": 2
+      },
+      {
+        "type": "Unified",
+        "level": 2,
+        "size": 256000000,
+        "num_sharing": 2
+      },
+      {
+        "type": "Unified",
+        "level": 3,
+        "size": 8192000000,
+        "num_sharing": 8
+      }
+    ],
+    "load_avg": [3.86,4.56,3.79],
+    "library_build_type": "release"
+  },
+  "benchmarks": [
+    {
+      "name": "Fixture/BM_raw_select",
+      "run_name": "Fixture/BM_raw_select",
+      "run_type": "iteration",
+      "iterations": 602,
+      "real_time": 1.3103022141864777e+06,
+      "cpu_time": 1.3071864717607975e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_raw_select",
+      "run_name": "Fixture/BM_raw_select",
+      "run_type": "iteration",
+      "iterations": 602,
+      "real_time": 1.3152317505985796e+06,
+      "cpu_time": 1.3152216810631230e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_raw_select",
+      "run_name": "Fixture/BM_raw_select",
+      "run_type": "iteration",
+      "iterations": 602,
+      "real_time": 1.5776590382265688e+06,
+      "cpu_time": 1.5775836179401998e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_raw_select",
+      "run_name": "Fixture/BM_raw_select",
+      "run_type": "iteration",
+      "iterations": 602,
+      "real_time": 1.7067930050831647e+06,
+      "cpu_time": 1.7067599734219266e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_raw_select",
+      "run_name": "Fixture/BM_raw_select",
+      "run_type": "iteration",
+      "iterations": 602,
+      "real_time": 1.3898531511809640e+06,
+      "cpu_time": 1.3898420033222584e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_raw_select",
+      "run_name": "Fixture/BM_raw_select",
+      "run_type": "iteration",
+      "iterations": 602,
+      "real_time": 1.2618224917790324e+06,
+      "cpu_time": 1.2618087657807320e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_raw_select",
+      "run_name": "Fixture/BM_raw_select",
+      "run_type": "iteration",
+      "iterations": 602,
+      "real_time": 1.7859673702260142e+06,
+      "cpu_time": 1.7859584667774087e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_raw_select",
+      "run_name": "Fixture/BM_raw_select",
+      "run_type": "iteration",
+      "iterations": 602,
+      "real_time": 1.9546338373275341e+06,
+      "cpu_time": 1.9546067691029897e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_raw_select",
+      "run_name": "Fixture/BM_raw_select",
+      "run_type": "iteration",
+      "iterations": 602,
+      "real_time": 1.3718893322196365e+06,
+      "cpu_time": 1.3718750149501639e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_raw_select",
+      "run_name": "Fixture/BM_raw_select",
+      "run_type": "iteration",
+      "iterations": 602,
+      "real_time": 1.2084790099368885e+06,
+      "cpu_time": 1.2083993089700995e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_raw_select_mean",
+      "run_name": "Fixture/BM_raw_select",
+      "run_type": "aggregate",
+      "aggregate_name": "mean",
+      "iterations": 10,
+      "real_time": 1.4882631200764861e+06,
+      "cpu_time": 1.4879242073089702e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_raw_select_median",
+      "run_name": "Fixture/BM_raw_select",
+      "run_type": "aggregate",
+      "aggregate_name": "median",
+      "iterations": 10,
+      "real_time": 1.3808712417003005e+06,
+      "cpu_time": 1.3808585091362114e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_raw_select_stddev",
+      "run_name": "Fixture/BM_raw_select",
+      "run_type": "aggregate",
+      "aggregate_name": "stddev",
+      "iterations": 10,
+      "real_time": 2.5304111063584490e+05,
+      "cpu_time": 2.5328664544393457e+05,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_raw_select_reuse_stmt",
+      "run_name": "Fixture/BM_raw_select_reuse_stmt",
+      "run_type": "iteration",
+      "iterations": 609,
+      "real_time": 1.2031176600800995e+06,
+      "cpu_time": 1.2030948949096859e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_raw_select_reuse_stmt",
+      "run_name": "Fixture/BM_raw_select_reuse_stmt",
+      "run_type": "iteration",
+      "iterations": 609,
+      "real_time": 1.1753126552973818e+06,
+      "cpu_time": 1.1753078604269309e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_raw_select_reuse_stmt",
+      "run_name": "Fixture/BM_raw_select_reuse_stmt",
+      "run_type": "iteration",
+      "iterations": 609,
+      "real_time": 1.2450424781488178e+06,
+      "cpu_time": 1.2450256929392444e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_raw_select_reuse_stmt",
+      "run_name": "Fixture/BM_raw_select_reuse_stmt",
+      "run_type": "iteration",
+      "iterations": 609,
+      "real_time": 1.1688785666480586e+06,
+      "cpu_time": 1.1688786978653537e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_raw_select_reuse_stmt",
+      "run_name": "Fixture/BM_raw_select_reuse_stmt",
+      "run_type": "iteration",
+      "iterations": 609,
+      "real_time": 1.2213295418922047e+06,
+      "cpu_time": 1.2212939605911348e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_raw_select_reuse_stmt",
+      "run_name": "Fixture/BM_raw_select_reuse_stmt",
+      "run_type": "iteration",
+      "iterations": 609,
+      "real_time": 1.2363082559531545e+06,
+      "cpu_time": 1.2362895270935968e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_raw_select_reuse_stmt",
+      "run_name": "Fixture/BM_raw_select_reuse_stmt",
+      "run_type": "iteration",
+      "iterations": 609,
+      "real_time": 1.2838965287961201e+06,
+      "cpu_time": 1.2838788078817755e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_raw_select_reuse_stmt",
+      "run_name": "Fixture/BM_raw_select_reuse_stmt",
+      "run_type": "iteration",
+      "iterations": 609,
+      "real_time": 1.2308206288403966e+06,
+      "cpu_time": 1.2308205779967180e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_raw_select_reuse_stmt",
+      "run_name": "Fixture/BM_raw_select_reuse_stmt",
+      "run_type": "iteration",
+      "iterations": 609,
+      "real_time": 1.5493553611243446e+06,
+      "cpu_time": 1.5493447750410512e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_raw_select_reuse_stmt",
+      "run_name": "Fixture/BM_raw_select_reuse_stmt",
+      "run_type": "iteration",
+      "iterations": 609,
+      "real_time": 1.6074993170504207e+06,
+      "cpu_time": 1.6074602266009839e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_raw_select_reuse_stmt_mean",
+      "run_name": "Fixture/BM_raw_select_reuse_stmt",
+      "run_type": "aggregate",
+      "aggregate_name": "mean",
+      "iterations": 10,
+      "real_time": 1.2921560993831002e+06,
+      "cpu_time": 1.2921395021346477e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_raw_select_reuse_stmt_median",
+      "run_name": "Fixture/BM_raw_select_reuse_stmt",
+      "run_type": "aggregate",
+      "aggregate_name": "median",
+      "iterations": 10,
+      "real_time": 1.2335644423967756e+06,
+      "cpu_time": 1.2335550525451575e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_raw_select_reuse_stmt_stddev",
+      "run_name": "Fixture/BM_raw_select_reuse_stmt",
+      "run_type": "aggregate",
+      "aggregate_name": "stddev",
+      "iterations": 10,
+      "real_time": 1.5511849447945386e+05,
+      "cpu_time": 1.5511278446861604e+05,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_static_select",
+      "run_name": "Fixture/BM_static_select",
+      "run_type": "iteration",
+      "iterations": 467,
+      "real_time": 1.5886649783557118e+06,
+      "cpu_time": 1.5886655760171325e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_static_select",
+      "run_name": "Fixture/BM_static_select",
+      "run_type": "iteration",
+      "iterations": 467,
+      "real_time": 1.4459524409370837e+06,
+      "cpu_time": 1.4451568115631705e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_static_select",
+      "run_name": "Fixture/BM_static_select",
+      "run_type": "iteration",
+      "iterations": 467,
+      "real_time": 1.2834742545634827e+06,
+      "cpu_time": 1.2826137451820180e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_static_select",
+      "run_name": "Fixture/BM_static_select",
+      "run_type": "iteration",
+      "iterations": 467,
+      "real_time": 1.6496690923479691e+06,
+      "cpu_time": 1.6440960578158458e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_static_select",
+      "run_name": "Fixture/BM_static_select",
+      "run_type": "iteration",
+      "iterations": 467,
+      "real_time": 1.5176704414667485e+06,
+      "cpu_time": 1.5152202077087821e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_static_select",
+      "run_name": "Fixture/BM_static_select",
+      "run_type": "iteration",
+      "iterations": 467,
+      "real_time": 1.6232165717370249e+06,
+      "cpu_time": 1.6219563211991396e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_static_select",
+      "run_name": "Fixture/BM_static_select",
+      "run_type": "iteration",
+      "iterations": 467,
+      "real_time": 1.4602690750665213e+06,
+      "cpu_time": 1.4574738137044997e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_static_select",
+      "run_name": "Fixture/BM_static_select",
+      "run_type": "iteration",
+      "iterations": 467,
+      "real_time": 1.4816314496530711e+06,
+      "cpu_time": 1.4810122933618908e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_static_select",
+      "run_name": "Fixture/BM_static_select",
+      "run_type": "iteration",
+      "iterations": 467,
+      "real_time": 9.8359006869843986e+05,
+      "cpu_time": 9.8359162955032266e+05,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_static_select",
+      "run_name": "Fixture/BM_static_select",
+      "run_type": "iteration",
+      "iterations": 467,
+      "real_time": 9.8222152208331053e+05,
+      "cpu_time": 9.8220839400428231e+05,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_static_select_mean",
+      "run_name": "Fixture/BM_static_select",
+      "run_type": "aggregate",
+      "aggregate_name": "mean",
+      "iterations": 10,
+      "real_time": 1.4016359894909365e+06,
+      "cpu_time": 1.4001994850107082e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_static_select_median",
+      "run_name": "Fixture/BM_static_select",
+      "run_type": "aggregate",
+      "aggregate_name": "median",
+      "iterations": 10,
+      "real_time": 1.4709502623597961e+06,
+      "cpu_time": 1.4692430535331951e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "Fixture/BM_static_select_stddev",
+      "run_name": "Fixture/BM_static_select",
+      "run_type": "aggregate",
+      "aggregate_name": "stddev",
+      "iterations": 10,
+      "real_time": 2.4392538806070472e+05,
+      "cpu_time": 2.4297877142444751e+05,
+      "time_unit": "ns"
+    }
+  ]
+}
