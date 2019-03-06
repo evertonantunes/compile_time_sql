@@ -29,11 +29,11 @@ if args.directory != '':
 
 def get_cpu_time( value ):
     if value['time_unit'] == 'ns':
-        return value['cpu_time'] / 10e-9
+        return value['cpu_time'] / 10**-9
     if value['time_unit'] == R'µs':
-        return value['cpu_time'] / 10e-6
+        return value['cpu_time'] / 10**-6
     if value['time_unit'] == 'ms':
-        return value['cpu_time'] / 10e-3
+        return value['cpu_time'] / 10**-3
     return value['cpu_time']
 
 
@@ -45,6 +45,7 @@ for host_name in data:
         hwnd.append(line)
 
 plt.legend(handles=hwnd)
+plt.ylabel('CPU time')
 plt.show()
 
 
