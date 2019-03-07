@@ -1,15 +1,6 @@
 project(sql_benchmark)
 cmake_minimum_required(VERSION 2.6)
 
-if (UNIX AND NOT APPLE)
-    SET(Project_LIBRARIES
-        -lpthread
-        -lrt
-    )
-    SET(CMAKE_BUILD_TYPE Release)
-    ADD_DEFINITIONS(-O3)
-endif()
-
 #add project files
 file(GLOB_RECURSE SOURCES source/*.cpp)
 file(GLOB_RECURSE HEADERS include/*.hpp)
@@ -31,7 +22,7 @@ execute_process(COMMAND git rev-parse --verify HEAD
                 OUTPUT_STRIP_TRAILING_WHITESPACE)
 SET(OUTPUT_FILE_PATH_NAME ${OUTPUT_FILE_PATH}/${OUTPUT_FILE_NAME})
 
-add_custom_target(run_benchmark ALL DEPENDS sql_benchmark)
+add_custom_target(run_benchmark DEPENDS sql_benchmark)
 add_custom_command(TARGET run_benchmark COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROJECT_NAME} --benchmark_format=json --benchmark_repetitions=10 > ${OUTPUT_FILE_PATH_NAME})
 add_custom_command(TARGET run_benchmark COMMAND git add ${OUTPUT_FILE_PATH_NAME})
 add_custom_command(TARGET run_benchmark COMMAND git commit -m "add new benchmark report" ${OUTPUT_FILE_PATH_NAME})

@@ -24,4 +24,4 @@ cd ./build
 cmake ..
 cmake --build . --target all --config Release
 cmake --build . --target test --config Release
-
+#cmake --build . --target run_benchmark --config Release
