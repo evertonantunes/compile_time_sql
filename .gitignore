@@ -1,0 +1,7 @@
+CMakeFiles/*
+*/CMakeFiles/*
+bin/*
+Testing/*
+conanbuildinfo.cmake
+conanbuildinfo.txt
+conaninfo.txt

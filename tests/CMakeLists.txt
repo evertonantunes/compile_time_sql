@@ -3,17 +3,8 @@ cmake_minimum_required(VERSION 2.6)
 
 INCLUDE_DIRECTORIES(include/)
 
-SET(CMAKE_CXX_STANDARD 17)
-
 if (UNIX AND NOT APPLE)
-    SET(Project_LIBRARIES
-        -lpthread
-        -lrt
-    )
-    ADD_DEFINITIONS(-Werror)
-    ADD_DEFINITIONS(-Wdouble-promotion)
-    ADD_DEFINITIONS(-Wmaybe-uninitialized)
-    ADD_DEFINITIONS(-Werror=return-type)
+    SET(Project_LIBRARIES )
 
     SET(CMAKE_BUILD_TYPE Debug)
     ADD_DEFINITIONS(-O0)

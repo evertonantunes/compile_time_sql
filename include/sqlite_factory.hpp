@@ -11,8 +11,8 @@ namespace database
         class SQLiteError : public std::exception
         {
             sqlite3 *m_connection;
-            std::string_view m_sql;
             const int m_code;
+            std::string_view m_sql;
         public:
             SQLiteError( sqlite3 *connection, const int code, const std::string_view sql )
                 : m_connection(connection)
@@ -233,6 +233,11 @@ namespace database
             static std::ptrdiff_t get_last_insert_id()
             {
                 return sqlite3_last_insert_rowid(instance()->m_database_connection);
+            }
+
+            static std::ptrdiff_t get_changes()
+            {
+                return sqlite3_changes(instance()->m_database_connection);
             }
 
             static context_t make_context( const char *sql, const std::size_t size )

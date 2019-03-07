@@ -3,13 +3,6 @@
 #include <catch2/catch.hpp>
 #include "sample_database.hpp"
 
-using descriptions_t = database::tables::Descriptions;
-using users_t = database::tables::Users;
-
-using namespace sql;
-using f_name = alias<descriptions_t, decltype("f_name"_s)>;
-using s_name = alias<descriptions_t, decltype("s_name"_s)>;
-
 TEST_CASE("validate select count SQL", "[validate][select][count]")
 {
     const auto context = database::select(database::count(users_t::id)).from<users_t>();

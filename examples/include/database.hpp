@@ -1,8 +1,7 @@
 #pragma once
 
-#include "exceptionalized_static_assert.hpp"
-#include "../include/api.hpp"
-#include "../include/sqlite_factory.hpp"
+#include <api.hpp>
+#include <sqlite_factory.hpp>
 
 
 namespace database
@@ -75,31 +74,3 @@ using users_t = database::tables::Users;
 using namespace sql;
 using f_name = alias<descriptions_t, decltype("f_name"_s)>;
 using s_name = alias<descriptions_t, decltype("s_name"_s)>;
-
-class Fixture
-{
-public:
-    Fixture()
-    {
-
-        database::create_table<descriptions_t>();
-        database::create_table<users_t>();
-
-        database::insert_into<users_t>(   users_t::first_name = database::insert_into<descriptions_t>(descriptions_t::text = "Blaise")
-                                        , users_t::second_name = database::insert_into<descriptions_t>(descriptions_t::text = "Pascal")
-                                        , users_t::age = 39l );
-
-        database::insert_into<users_t>(   users_t::first_name = database::insert_into<descriptions_t>(descriptions_t::text = "Leonhard")
-                                        , users_t::second_name = database::insert_into<descriptions_t>(descriptions_t::text = "Euler")
-                                        , users_t::age = 76l );
-
-        database::insert_into<users_t>(   users_t::first_name = database::insert_into<descriptions_t>(descriptions_t::text = "Robert")
-                                        , users_t::second_name = database::insert_into<descriptions_t>(descriptions_t::text = "Hooke")
-                                        , users_t::age = 67l );
-    }
-
-    ~Fixture()
-    {
-        database::factory_t::instance()->reset();
-    }
-};

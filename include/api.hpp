@@ -389,7 +389,7 @@ namespace sql
         }
 
         template< typename OP, typename _Table, typename _NameString, typename _Type, typename _Flags>
-        inline auto make_operation( const Column<_Table, _NameString, _Type, _Flags> &value ) const
+        inline auto make_operation( const Column<_Table, _NameString, _Type, _Flags> & ) const
         {
             static_assert((std::is_same<type_t, _Type>::value), "Parameter type does not compatible");
             using other_t = Column<_Table, _NameString, _Type, _Flags>;
@@ -815,6 +815,31 @@ namespace sql
                 return Iterator();
             }
         };
+
+        template<typename FACTORY, typename TABLE, typename WHERE>
+        struct Delete_from
+        {
+            WHERE m_data;
+
+            Delete_from( WHERE &&data )
+                : m_data(std::move(data))
+            { }
+
+            static constexpr auto to_string( )
+            {
+                return "DELETE FROM "_s + typename TABLE::name_t() + " WHERE "_s + WHERE::to_string() + ";"_s;
+            }
+
+            auto run() const
+            {
+                const constexpr auto text = to_string();
+                auto context = FACTORY::make_context(text.c_str(), text.size());
+                FACTORY::bind(context, m_data.data());
+                std::tuple<> tp;
+                next(context, tp);
+                return FACTORY::get_changes();
+            }
+        };
     }
 
     template<typename F, typename ...T>
@@ -848,5 +873,11 @@ namespace sql
     constexpr auto count( )
     {
         return default_column<std::ptrdiff_t, decltype("COUNT("_s  + T::to_string() + ")"_s)>();
+    }
+
+    template<typename FACTORY, typename TABLE, typename WHERE>
+    auto delete_from( WHERE &&where )
+    {
+        return impl::Delete_from<FACTORY, TABLE, WHERE>(std::move(where)).run();
     }
 }

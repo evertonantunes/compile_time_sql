@@ -3,9 +3,6 @@
 #include <catch2/catch.hpp>
 #include "sample_database.hpp"
 
-using descriptions_t = database::tables::Descriptions;
-using users_t = database::tables::Users;
-
 TEST_CASE("validate parameter assign type string fail", "[validate][assign][fail][parameter][type][string]")
 {
     REQUIRE_THROWS(descriptions_t::text = 39);
