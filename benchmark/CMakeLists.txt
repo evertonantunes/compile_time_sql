@@ -27,5 +27,5 @@ add_custom_command(TARGET run_benchmark COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY
 add_custom_command(TARGET run_benchmark COMMAND git add ${OUTPUT_FILE_PATH_NAME})
 add_custom_command(TARGET run_benchmark COMMAND git commit -m "add new benchmark report" ${OUTPUT_FILE_PATH_NAME})
 
-add_custom_target(plot_benchmark DEPENDS run_benchmark)
+add_custom_target(plot_benchmark)
 add_custom_command(TARGET plot_benchmark COMMAND python ${PROJECT_SOURCE_DIR}/plot.py --directory=${OUTPUT_FILE_PATH})
